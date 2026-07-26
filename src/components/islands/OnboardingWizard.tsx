@@ -56,11 +56,12 @@ export default function OnboardingWizard() {
       setMonthlyRent(existing.monthlyRent);
 
       // Reverse-engineer CTC from job components
-      // Load annualized CTC from components
+      // Load annualized CTC from components (including variable pay and employer PF)
       const currentJob = existing.jobs.find(j => j.isCurrentJob) || existing.jobs[0];
       const c = currentJob.components;
-      const annualized = c.basic + c.hra + c.specialAllowance + c.lta + c.fuelMaintenance +
-        c.flexiBasket + c.managementAllowance + c.otherAllowances + (currentJob.employerPF || 0);
+      const annualized = (c.basic ?? 0) + (c.hra ?? 0) + (c.specialAllowance ?? 0) + (c.lta ?? 0) +
+        (c.fuelMaintenance ?? 0) + (c.flexiBasket ?? 0) + (c.managementAllowance ?? 0) + (c.otherAllowances ?? 0) +
+        (currentJob.employerPF ?? 0) + (currentJob.variablePay ?? 0);
       setAnnualCTC(annualized);
 
       // Estimate basic % from components
@@ -75,13 +76,15 @@ export default function OnboardingWizard() {
         if (newJob) {
           setSwitchMonth(Math.max(2, newJob.startMonth));
           const nc = newJob.components;
-          setNewCTC(nc.basic + nc.hra + nc.specialAllowance + nc.lta + nc.fuelMaintenance +
-            nc.flexiBasket + nc.managementAllowance + nc.otherAllowances + (newJob.employerPF || 0));
+          setNewCTC((nc.basic ?? 0) + (nc.hra ?? 0) + (nc.specialAllowance ?? 0) + (nc.lta ?? 0) +
+            (nc.fuelMaintenance ?? 0) + (nc.flexiBasket ?? 0) + (nc.managementAllowance ?? 0) + (nc.otherAllowances ?? 0) +
+            (newJob.employerPF ?? 0) + (newJob.variablePay ?? 0));
         }
         const prevJob = existing.jobs.find(j => !j.isCurrentJob) || existing.jobs[0];
         const pc = prevJob.components;
-        setAnnualCTC(pc.basic + pc.hra + pc.specialAllowance + pc.lta + pc.fuelMaintenance +
-          pc.flexiBasket + pc.managementAllowance + pc.otherAllowances + (prevJob.employerPF || 0));
+        setAnnualCTC((pc.basic ?? 0) + (pc.hra ?? 0) + (pc.specialAllowance ?? 0) + (pc.lta ?? 0) +
+          (pc.fuelMaintenance ?? 0) + (pc.flexiBasket ?? 0) + (pc.managementAllowance ?? 0) + (pc.otherAllowances ?? 0) +
+          (prevJob.employerPF ?? 0) + (prevJob.variablePay ?? 0));
       }
 
       // Optimizations

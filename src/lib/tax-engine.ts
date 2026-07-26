@@ -38,27 +38,20 @@ export function calculateSlabTax(
   income: number,
   slabs: readonly TaxSlab[]
 ): SlabBreakdown[] {
-  const result: SlabBreakdown[] = [];
-  let remaining = Math.max(0, Math.round(income));
+  const roundedIncome = Math.max(0, Math.round(income));
 
-  for (const slab of slabs) {
-    if (remaining <= 0) {
-      result.push({ slab, taxableInSlab: 0, taxOnSlab: 0 });
-      continue;
+  return slabs.map((slab) => {
+    const minThreshold = slab.min > 0 ? slab.min - 1 : 0;
+    if (roundedIncome <= minThreshold) {
+      return { slab, taxableInSlab: 0, taxOnSlab: 0 };
     }
 
-    const slabWidth = slab.max === Infinity
-      ? remaining
-      : Math.max(0, slab.max - (slab.min > 0 ? slab.min - 1 : 0));
-
-    const taxableInSlab = Math.min(remaining, slabWidth);
+    const upperLimit = slab.max === Infinity ? roundedIncome : slab.max;
+    const taxableInSlab = Math.max(0, Math.min(roundedIncome, upperLimit) - minThreshold);
     const taxOnSlab = Math.round(taxableInSlab * slab.rate);
 
-    result.push({ slab, taxableInSlab, taxOnSlab });
-    remaining -= taxableInSlab;
-  }
-
-  return result;
+    return { slab, taxableInSlab, taxOnSlab };
+  });
 }
 
 /** Calculate 4% Health & Education Cess */
@@ -864,14 +857,14 @@ function applyParameterChange(
         const ratio = value / currentGross;
         for (const job of modified.jobs) {
           const c = job.components;
-          c.basic = Math.round(c.basic * ratio);
-          c.hra = Math.round(c.hra * ratio);
-          c.lta = Math.round(c.lta * ratio);
-          c.specialAllowance = Math.round(c.specialAllowance * ratio);
-          c.fuelMaintenance = Math.round(c.fuelMaintenance * ratio);
-          c.flexiBasket = Math.round(c.flexiBasket * ratio);
-          c.managementAllowance = Math.round(c.managementAllowance * ratio);
-          c.otherAllowances = Math.round(c.otherAllowances * ratio);
+          c.basic = Math.round((c.basic ?? 0) * ratio);
+          c.hra = Math.round((c.hra ?? 0) * ratio);
+          c.lta = Math.round((c.lta ?? 0) * ratio);
+          c.specialAllowance = Math.round((c.specialAllowance ?? 0) * ratio);
+          c.fuelMaintenance = Math.round((c.fuelMaintenance ?? 0) * ratio);
+          c.flexiBasket = Math.round((c.flexiBasket ?? 0) * ratio);
+          c.managementAllowance = Math.round((c.managementAllowance ?? 0) * ratio);
+          c.otherAllowances = Math.round((c.otherAllowances ?? 0) * ratio);
           job.variablePay = Math.round((job.variablePay ?? 0) * ratio);
           job.employerPF = Math.round((job.employerPF ?? 0) * ratio);
         }
