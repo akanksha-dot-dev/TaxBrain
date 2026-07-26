@@ -38,6 +38,7 @@ export const EMPTY_PROFILE: UserProfile = {
     },
     section24B: 0,
     section80TTA: 0,
+    professionalTax: 0,
   },
 
   optimizations: {
@@ -154,6 +155,7 @@ const midCareer: UserProfile = {
   }],
 
   deductions: {
+    ...EMPTY_PROFILE.deductions,
     section80C: {
       epf: 0, ppf: 50000, elss: 0, lifeInsurance: 25000,
       nsc: 0, taxSavingFD: 0, tuitionFees: 0,
@@ -208,18 +210,18 @@ const jobSwitcher: UserProfile = {
       startMonth: 1,
       endMonth: 5,
       components: {
-        basic: 375000,
-        hra: 187500,
-        specialAllowance: 187500,
+        basic: 900000,       // ₹75,000/month annualized
+        hra: 450000,
+        specialAllowance: 450000,
         lta: 0,
         fuelMaintenance: 0,
         flexiBasket: 0,
         managementAllowance: 0,
         otherAllowances: 0,
       },
-      variablePay: 75000,
+      variablePay: 180000,
       variablePayPercent: 100,
-      employerPF: 45000,
+      employerPF: 108000,
       isCurrentJob: false,
     },
     {
@@ -228,18 +230,18 @@ const jobSwitcher: UserProfile = {
       startMonth: 6,
       endMonth: 12,
       components: {
-        basic: 700000,
-        hra: 350000,
-        specialAllowance: 350000,
-        lta: 84000,
+        basic: 1200000,      // ₹1,00,000/month annualized
+        hra: 600000,
+        specialAllowance: 600000,
+        lta: 144000,
         fuelMaintenance: 0,
         flexiBasket: 0,
         managementAllowance: 0,
         otherAllowances: 0,
       },
-      variablePay: 180000,
+      variablePay: 308571,
       variablePayPercent: 50,
-      employerPF: 84000,
+      employerPF: 144000,
       isCurrentJob: true,
     },
   ],
@@ -301,6 +303,7 @@ const seniorPro: UserProfile = {
   }],
 
   deductions: {
+    ...EMPTY_PROFILE.deductions,
     section80C: {
       epf: 0, ppf: 0, elss: 50000, lifeInsurance: 30000,
       nsc: 0, taxSavingFD: 0, tuitionFees: 80000,

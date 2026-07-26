@@ -9,6 +9,8 @@
 
 import type { UserProfile } from './types';
 
+import { EMPTY_PROFILE } from '../data/default-profile';
+
 const STORAGE_KEY = 'taxbrain_profile';
 const CURRENT_VERSION = 1;
 
@@ -29,11 +31,37 @@ export function loadProfile(): UserProfile | null {
 
     const parsed = JSON.parse(raw) as UserProfile;
 
-    if (parsed.version < CURRENT_VERSION) {
-      return migrateProfile(parsed);
+    // Deep merge with EMPTY_PROFILE to ensure schema integrity
+    const merged: UserProfile = {
+      ...EMPTY_PROFILE,
+      ...parsed,
+      deductions: {
+        ...EMPTY_PROFILE.deductions,
+        ...parsed.deductions,
+        section80C: {
+          ...EMPTY_PROFILE.deductions.section80C,
+          ...(parsed.deductions?.section80C || {}),
+        },
+        section80D: {
+          ...EMPTY_PROFILE.deductions.section80D,
+          ...(parsed.deductions?.section80D || {}),
+        },
+      },
+      optimizations: {
+        ...EMPTY_PROFILE.optimizations,
+        ...(parsed.optimizations || {}),
+      },
+      lifeEvents: {
+        ...EMPTY_PROFILE.lifeEvents,
+        ...(parsed.lifeEvents || {}),
+      },
+    };
+
+    if (merged.version < CURRENT_VERSION) {
+      return migrateProfile(merged);
     }
 
-    return parsed;
+    return merged;
   } catch {
     console.warn('TaxBrain: Failed to load profile from localStorage');
     return null;
@@ -67,11 +95,12 @@ export function hasProfile(): boolean {
 }
 
 /**
- * Clear the saved profile (returns to onboarding state).
+ * Clear the saved profile and action checklist state (returns to onboarding state).
  */
 export function clearProfile(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(ACTIONS_KEY);
   }
 }
 

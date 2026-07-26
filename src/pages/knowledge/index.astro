@@ -173,14 +173,14 @@ const categories = Object.keys(categoryMeta);
     cards.forEach(card => {
       const category = card.dataset.category || '';
       const title = card.dataset.title || '';
-      const tags = card.dataset.tags || '';
+      const tagList = (card.dataset.tags || '').split(' ').filter(Boolean);
       const description = card.dataset.description || '';
 
       const matchesCategory = currentFilter === 'all' || category === currentFilter;
       const matchesSearch = !query ||
         title.includes(query) ||
-        tags.includes(query) ||
-        description.includes(query);
+        description.includes(query) ||
+        tagList.some(tag => tag === query || tag.startsWith(query));
 
       if (matchesCategory && matchesSearch) {
         card.style.display = '';

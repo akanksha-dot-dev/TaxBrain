@@ -117,7 +117,7 @@ export function parseCurrencyInput(input: string): number {
     .trim();
 
   const parsed = parseInt(cleaned, 10);
-  return isNaN(parsed) ? 0 : parsed;
+  return isNaN(parsed) ? 0 : Math.max(0, parsed);
 }
 
 /**

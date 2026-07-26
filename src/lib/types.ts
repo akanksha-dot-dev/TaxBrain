@@ -163,6 +163,7 @@ export interface UserDeductions {
   section80D: Section80D;
   section24B: number; // Home loan interest
   section80TTA: number; // Savings account interest (₹10K cap)
+  professionalTax: number; // Professional Tax (Sec 16(iii), ₹2,500 cap)
 }
 
 /** Optimization toggles for salary restructuring */

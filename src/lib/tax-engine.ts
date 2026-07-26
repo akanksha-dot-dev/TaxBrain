@@ -73,7 +73,14 @@ export function calculateSurcharge(
 ): number {
   for (const slab of surchargeSlabs) {
     if (income >= slab.min && income <= slab.max) {
-      return Math.round(tax * slab.rate);
+      const rawSurcharge = Math.round(tax * slab.rate);
+      const threshold = slab.min - 1; // e.g. 50,00,000
+      const excessIncome = income - threshold;
+      // Marginal relief: Surcharge should not exceed income in excess of threshold
+      if (rawSurcharge > excessIncome) {
+        return Math.max(0, excessIncome);
+      }
+      return rawSurcharge;
     }
   }
   return 0;
@@ -167,21 +174,19 @@ export function calculateHRAExemption(params: {
  * Variable pay is included at the specified achievement percentage.
  */
 function calculateJobGross(job: JobProfile): number {
-  const months = job.endMonth - job.startMonth + 1;
-  const c = job.components;
+  const months = Math.max(0, job.endMonth - job.startMonth + 1);
+  const c = job.components || {};
 
-  // Per-month calculation: employers round up on payslips.
-  // Each component is annual → divide by 12 → ceil → multiply by months.
   const monthlyFixed = Math.ceil(
-    (c.basic + c.hra + c.lta + c.specialAllowance +
-     c.fuelMaintenance + c.flexiBasket + c.managementAllowance +
-     c.otherAllowances) / 12
+    ((c.basic ?? 0) + (c.hra ?? 0) + (c.lta ?? 0) + (c.specialAllowance ?? 0) +
+     (c.fuelMaintenance ?? 0) + (c.flexiBasket ?? 0) + (c.managementAllowance ?? 0) +
+     (c.otherAllowances ?? 0)) / 12
   );
 
   const fixedSalary = monthlyFixed * months;
 
   // Variable pay: annual × months/12 × achievement%
-  const variable = Math.round(job.variablePay * months / 12 * (job.variablePayPercent / 100));
+  const variable = Math.round((job.variablePay ?? 0) * months / 12 * ((job.variablePayPercent ?? 0) / 100));
 
   return fixedSalary + variable;
 }
@@ -193,9 +198,8 @@ function calculateJobGross(job: JobProfile): number {
 function calculateTotalEmployeePF(jobs: readonly JobProfile[]): number {
   let total = 0;
   for (const job of jobs) {
-    const months = job.endMonth - job.startMonth + 1;
-    // Employee PF = same as employer PF (12% of basic)
-    total += Math.round(job.employerPF * (months / 12));
+    const months = Math.max(0, job.endMonth - job.startMonth + 1);
+    total += Math.round((job.employerPF ?? 0) * (months / 12));
   }
   return total;
 }
@@ -209,9 +213,10 @@ function calculateMealVoucherExemption(
   months: number,
   perMealLimit: number
 ): number {
+  const validMonths = Math.max(0, months);
   const workingDaysPerMonth = 22;
   const mealsPerDay = 2;
-  return perMealLimit * mealsPerDay * workingDaysPerMonth * months;
+  return perMealLimit * mealsPerDay * workingDaysPerMonth * validMonths;
 }
 
 /**
@@ -224,8 +229,8 @@ function calculateEmployerNPS(
   regime: 'new' | 'old',
   config: TaxConfig
 ): number {
-  const months = job.endMonth - job.startMonth + 1;
-  const proRatedBasic = Math.round(job.components.basic * (months / 12));
+  const months = Math.max(0, job.endMonth - job.startMonth + 1);
+  const proRatedBasic = Math.round((job.components?.basic ?? 0) * (months / 12));
   const percent = regime === 'new'
     ? config.employerNPS.newRegimePercent
     : config.employerNPS.oldRegimePrivatePercent;
@@ -265,6 +270,19 @@ export function calculateNewRegimeTax(
   let grossSalary = 0;
   for (const job of profile.jobs) {
     grossSalary += calculateJobGross(job);
+  }
+
+  // Check aggregate employer contribution cap (Sec 17(2)(vii) - ₹7,50,000)
+  let totalEmployerContrib = 0;
+  for (const job of profile.jobs) {
+    const months = job.endMonth - job.startMonth + 1;
+    const epf = Math.round(job.employerPF * (months / 12));
+    const nps = profile.optimizations.employerNPS ? calculateEmployerNPS(job, 'new', config) : 0;
+    totalEmployerContrib += (epf + nps);
+  }
+  if (totalEmployerContrib > config.employerPFESICCap) {
+    const excessPerquisite = totalEmployerContrib - config.employerPFESICCap;
+    grossSalary += excessPerquisite;
   }
 
   // Step 2: Employer NPS exemption
@@ -440,11 +458,12 @@ export function calculateOldRegimeTax(
   let totalExemptions = 0;
   if (profile.monthlyRent > 0) {
     for (const job of profile.jobs) {
-      const months = job.endMonth - job.startMonth + 1;
+      const months = Math.max(0, job.endMonth - job.startMonth + 1);
+      if (months <= 0) continue;
       const proRate = months / 12;
       const hra = calculateHRAExemption({
-        basic: Math.round(job.components.basic * proRate),
-        hra: Math.round(job.components.hra * proRate),
+        basic: Math.round((job.components?.basic ?? 0) * proRate),
+        hra: Math.round((job.components?.hra ?? 0) * proRate),
         monthlyRent: profile.monthlyRent,
         months,
         isMetro: profile.isMetroCity,
@@ -525,18 +544,19 @@ export function calculateOldRegimeTax(
 
   // Step 8: Section 80C
   const epfContribution = calculateTotalEmployeePF(profile.jobs);
+  const s80c = profile.deductions.section80C || {};
   const total80C = Math.min(
     150000,
     epfContribution +
-    profile.deductions.section80C.ppf +
-    profile.deductions.section80C.elss +
-    profile.deductions.section80C.lifeInsurance +
-    profile.deductions.section80C.nsc +
-    profile.deductions.section80C.taxSavingFD +
-    profile.deductions.section80C.tuitionFees +
-    profile.deductions.section80C.homeLoanPrincipal +
-    profile.deductions.section80C.stampDuty +
-    profile.deductions.section80C.other
+    (s80c.ppf ?? 0) +
+    (s80c.elss ?? 0) +
+    (s80c.lifeInsurance ?? 0) +
+    (s80c.nsc ?? 0) +
+    (s80c.taxSavingFD ?? 0) +
+    (s80c.tuitionFees ?? 0) +
+    (s80c.homeLoanPrincipal ?? 0) +
+    (s80c.stampDuty ?? 0) +
+    (s80c.other ?? 0)
   );
   if (total80C > 0) {
     deductions.push({
@@ -551,7 +571,7 @@ export function calculateOldRegimeTax(
   }
 
   // Step 9: Section 80CCD(1B) — NPS self
-  const nps1b = Math.min(50000, profile.deductions.section80CCD1B);
+  const nps1b = Math.min(50000, profile.deductions.section80CCD1B ?? 0);
   if (nps1b > 0) {
     deductions.push({
       name: 'NPS Self-Contribution',
@@ -564,7 +584,7 @@ export function calculateOldRegimeTax(
     totalDeductions += nps1b;
   }
 
-  // Step 10: Section 80CCD(2) — Employer NPS (10% for private sector under old regime)
+  // Step 10: Section 80CCD(2) — Employer NPS
   if (profile.optimizations.employerNPS) {
     let totalNPS = 0;
     for (const job of profile.jobs) {
@@ -578,7 +598,7 @@ export function calculateOldRegimeTax(
         section: '80CCD(2)',
         newActSection: '124(2)',
         claimed: totalNPS,
-        limit: totalNPS, // Percentage-based, no absolute cap
+        limit: totalNPS,
         details: '10% of Basic (private sector old regime limit)',
       });
       totalDeductions += totalNPS;
@@ -586,14 +606,15 @@ export function calculateOldRegimeTax(
   }
 
   // Step 11: Section 80D — Health insurance
-  const selfLimit = 25000;
-  const parentsLimit = profile.deductions.section80D.parentsAreSenior ? 50000 : 25000;
+  const isSenior = profile.age >= 60;
+  const selfLimit = isSenior ? 50000 : 25000;
+  const parentsLimit = profile.deductions.section80D?.parentsAreSenior ? 50000 : 25000;
   const selfClaimed = Math.min(
     selfLimit,
-    profile.deductions.section80D.selfPremium +
-    Math.min(5000, profile.deductions.section80D.preventiveCheckup)
+    (profile.deductions.section80D?.selfPremium ?? 0) +
+    Math.min(5000, profile.deductions.section80D?.preventiveCheckup ?? 0)
   );
-  const parentsClaimed = Math.min(parentsLimit, profile.deductions.section80D.parentsPremium);
+  const parentsClaimed = Math.min(parentsLimit, profile.deductions.section80D?.parentsPremium ?? 0);
   const total80D = selfClaimed + parentsClaimed;
   if (total80D > 0) {
     deductions.push({
@@ -602,13 +623,13 @@ export function calculateOldRegimeTax(
       newActSection: '126',
       claimed: total80D,
       limit: selfLimit + parentsLimit,
-      details: `Self ₹${selfClaimed.toLocaleString('en-IN')} + Parents ₹${parentsClaimed.toLocaleString('en-IN')}`,
+      details: `Self ${isSenior ? '(Senior)' : ''} ₹${selfClaimed.toLocaleString('en-IN')} + Parents ₹${parentsClaimed.toLocaleString('en-IN')}`,
     });
     totalDeductions += total80D;
   }
 
   // Step 12: Section 24(b) — Home loan interest
-  const homeLoanInterest = Math.min(200000, profile.deductions.section24B);
+  const homeLoanInterest = Math.min(200000, profile.deductions.section24B ?? 0);
   if (homeLoanInterest > 0) {
     deductions.push({
       name: 'Home Loan Interest',
@@ -621,18 +642,47 @@ export function calculateOldRegimeTax(
     totalDeductions += homeLoanInterest;
   }
 
-  // Step 13: Section 80TTA — Savings interest
-  const savings80TTA = Math.min(10000, profile.deductions.section80TTA);
-  if (savings80TTA > 0) {
+  // Step 13: Section 80TTA / 80TTB — Interest income
+  if (isSenior) {
+    const interest80TTB = Math.min(50000, profile.deductions.section80TTA ?? 0);
+    if (interest80TTB > 0) {
+      deductions.push({
+        name: 'Interest Income (Senior)',
+        section: '80TTB',
+        newActSection: '(mapped)',
+        claimed: interest80TTB,
+        limit: 50000,
+        details: 'Interest from savings & deposits (Sec 80TTB)',
+      });
+      totalDeductions += interest80TTB;
+    }
+  } else {
+    const savings80TTA = Math.min(10000, profile.deductions.section80TTA ?? 0);
+    if (savings80TTA > 0) {
+      deductions.push({
+        name: 'Savings Interest',
+        section: '80TTA',
+        newActSection: '(mapped)',
+        claimed: savings80TTA,
+        limit: 10000,
+        details: 'Interest from savings accounts (Sec 80TTA)',
+      });
+      totalDeductions += savings80TTA;
+    }
+  }
+
+  // Step 13.5: Section 16(iii) — Professional Tax
+  const ptax = Math.min(2500, profile.deductions.professionalTax ?? 0);
+  if (ptax > 0) {
     deductions.push({
-      name: 'Savings Interest',
-      section: '80TTA',
+      name: 'Professional Tax',
+      section: '16(iii)',
       newActSection: '(mapped)',
-      claimed: savings80TTA,
-      limit: 10000,
-      details: 'Interest from savings accounts',
+      claimed: ptax,
+      limit: 2500,
+      details: 'State professional tax paid',
     });
-    totalDeductions += savings80TTA;
+    totalDeductions += ptax;
   }
 
   // Step 14: Taxable income
@@ -795,6 +845,8 @@ function applyParameterChange(
           c.flexiBasket = Math.round(c.flexiBasket * ratio);
           c.managementAllowance = Math.round(c.managementAllowance * ratio);
           c.otherAllowances = Math.round(c.otherAllowances * ratio);
+          job.variablePay = Math.round((job.variablePay ?? 0) * ratio);
+          job.employerPF = Math.round((job.employerPF ?? 0) * ratio);
         }
       }
       break;

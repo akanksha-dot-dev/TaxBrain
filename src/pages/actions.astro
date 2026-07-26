@@ -4,5 +4,11 @@ import ActionChecklist from '../components/islands/ActionChecklist';
 ---
 
 <Layout title="Action Checklist | TaxBrain">
+  <noscript>
+    <div class="card" style="margin-bottom: var(--space-6); padding: var(--space-6);">
+      <h2>JavaScript Required for Action Checklist</h2>
+      <p>The action checklist uses interactive client-side state to track your tax optimization tasks.</p>
+    </div>
+  </noscript>
   <ActionChecklist client:load />
 </Layout>

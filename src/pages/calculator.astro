@@ -4,6 +4,12 @@ import Calculator from '../components/islands/Calculator';
 ---
 
 <Layout title="Tax Calculator | TaxBrain">
+  <noscript>
+    <div class="card" style="margin-bottom: var(--space-6); padding: var(--space-6);">
+      <h2>JavaScript Required for Interactive Calculator</h2>
+      <p>TaxBrain performs instant dual-regime income tax calculations in your browser. Please enable JavaScript to use the interactive calculator.</p>
+    </div>
+  </noscript>
   <Calculator client:load />
 </Layout>
 

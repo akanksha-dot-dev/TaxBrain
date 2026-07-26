@@ -4,6 +4,12 @@ import Simulator from '../components/islands/Simulator';
 ---
 
 <Layout title="Scenario Simulator | TaxBrain">
+  <noscript>
+    <div class="card" style="margin-bottom: var(--space-6); padding: var(--space-6);">
+      <h2>JavaScript Required for Scenario Simulator</h2>
+      <p>The scenario simulator requires JavaScript to render real-time interactive sliders and tax breakeven charts.</p>
+    </div>
+  </noscript>
   <Simulator client:load />
 </Layout>
 

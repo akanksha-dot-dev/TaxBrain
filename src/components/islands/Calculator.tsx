@@ -26,7 +26,11 @@ import type { UserProfile, TaxResult, SlabBreakdown } from '../../lib/types';
 
 export default function Calculator() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    optimizations: true,
+    'job-0': true,
+  });
+  const [activeSlabTab, setActiveSlabTab] = useState<'new' | 'old'>('new');
 
   useEffect(() => {
     setProfile(loadProfile());
@@ -44,6 +48,10 @@ export default function Calculator() {
       saveProfile(updated);
       return updated;
     });
+  }, []);
+
+  const toggleSection = useCallback((id: string) => {
+    setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
   if (!profile || profile.jobs.length === 0) {
@@ -77,8 +85,8 @@ export default function Calculator() {
           <Section
             title="📍 Personal Info"
             id="personal"
-            expanded={expandedSection === 'personal'}
-            onToggle={() => setExpandedSection(expandedSection === 'personal' ? null : 'personal')}
+            isOpen={!!openSections['personal']}
+            onToggle={() => toggleSection('personal')}
           >
             <div className="input-row">
               <InputField
@@ -111,9 +119,8 @@ export default function Calculator() {
               key={job.id}
               title={`💼 ${job.employer} (${getMonthName(job.startMonth)}–${getMonthName(job.endMonth)})`}
               id={`job-${idx}`}
-              expanded={expandedSection === `job-${idx}`}
-              onToggle={() => setExpandedSection(expandedSection === `job-${idx}` ? null : `job-${idx}`)}
-              defaultExpanded={idx === profile.jobs.length - 1}
+              isOpen={openSections[`job-${idx}`] ?? (idx === profile.jobs.length - 1)}
+              onToggle={() => toggleSection(`job-${idx}`)}
             >
               <div className="input-row">
                 <InputField
@@ -173,9 +180,8 @@ export default function Calculator() {
           <Section
             title="⚡ Optimizations"
             id="optimizations"
-            expanded={expandedSection === 'optimizations'}
-            onToggle={() => setExpandedSection(expandedSection === 'optimizations' ? null : 'optimizations')}
-            defaultExpanded
+            isOpen={!!openSections['optimizations']}
+            onToggle={() => toggleSection('optimizations')}
           >
             <ToggleField
               label="Employer NPS (14% of Basic)"
@@ -201,8 +207,8 @@ export default function Calculator() {
           <Section
             title="📋 Old Regime Deductions"
             id="deductions"
-            expanded={expandedSection === 'deductions'}
-            onToggle={() => setExpandedSection(expandedSection === 'deductions' ? null : 'deductions')}
+            isOpen={!!openSections['deductions']}
+            onToggle={() => toggleSection('deductions')}
           >
             <div className="input-row">
               <InputField
@@ -297,9 +303,20 @@ export default function Calculator() {
           <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
             <h3 className="section-title">📊 Slab-by-Slab Breakdown</h3>
             <div className="tabs" style={{ marginBottom: 'var(--space-4)' }}>
-              <BreakdownTab label="New Regime" />
+              <button
+                className={`tab ${activeSlabTab === 'new' ? 'active' : ''}`}
+                onClick={() => setActiveSlabTab('new')}
+              >
+                New Regime
+              </button>
+              <button
+                className={`tab ${activeSlabTab === 'old' ? 'active' : ''}`}
+                onClick={() => setActiveSlabTab('old')}
+              >
+                Old Regime
+              </button>
             </div>
-            <SlabTable breakdown={comparison.newRegime.slabBreakdown} />
+            <SlabTable breakdown={comparison[activeSlabTab === 'new' ? 'newRegime' : 'oldRegime'].slabBreakdown} />
           </div>
 
           {/* Computation Steps */}
@@ -319,16 +336,13 @@ export default function Calculator() {
 // SUB-COMPONENTS
 // ============================================================
 
-function Section({ title, id, expanded, onToggle, defaultExpanded, children }: {
+function Section({ title, id, isOpen, onToggle, children }: {
   title: string;
   id: string;
-  expanded: boolean;
+  isOpen: boolean;
   onToggle: () => void;
-  defaultExpanded?: boolean;
   children: React.ReactNode;
 }) {
-  const isOpen = expanded || (defaultExpanded && expanded === null);
-
   return (
     <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
       <button
@@ -435,12 +449,6 @@ function ResultCard({ result, isWinner }: {
         Effective rate: {formatPercent(result.effectiveTaxRate)} • Take-home: {formatCurrency(result.monthlyTakeHome)}/mo
       </div>
     </div>
-  );
-}
-
-function BreakdownTab({ label }: { label: string }) {
-  return (
-    <button className="tab active">{label}</button>
   );
 }
 

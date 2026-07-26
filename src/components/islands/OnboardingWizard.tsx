@@ -56,19 +56,16 @@ export default function OnboardingWizard() {
       setMonthlyRent(existing.monthlyRent);
 
       // Reverse-engineer CTC from job components
+      // Load annualized CTC from components
       const currentJob = existing.jobs.find(j => j.isCurrentJob) || existing.jobs[0];
       const c = currentJob.components;
-      const months = currentJob.endMonth - currentJob.startMonth + 1;
-      const annualized = Math.round(
-        ((c.basic + c.hra + c.specialAllowance + c.lta + c.fuelMaintenance +
-          c.flexiBasket + c.managementAllowance + c.otherAllowances) / months) * 12
-      ) + Math.round((currentJob.employerPF / months) * 12);
+      const annualized = c.basic + c.hra + c.specialAllowance + c.lta + c.fuelMaintenance +
+        c.flexiBasket + c.managementAllowance + c.otherAllowances + (currentJob.employerPF || 0);
       setAnnualCTC(annualized);
 
       // Estimate basic % from components
-      const annualBasic = Math.round((c.basic / months) * 12);
       if (annualized > 0) {
-        setBasicPercent(Math.round((annualBasic / annualized) * 100));
+        setBasicPercent(Math.round((c.basic / annualized) * 100));
       }
 
       // Multi-job detection
@@ -76,60 +73,65 @@ export default function OnboardingWizard() {
         setHasJobSwitch(true);
         const newJob = existing.jobs.find(j => j.isCurrentJob);
         if (newJob) {
-          setSwitchMonth(newJob.startMonth);
+          setSwitchMonth(Math.max(2, newJob.startMonth));
           const nc = newJob.components;
-          const nm = newJob.endMonth - newJob.startMonth + 1;
-          setNewCTC(Math.round(
-            ((nc.basic + nc.hra + nc.specialAllowance + nc.lta + nc.fuelMaintenance +
-              nc.flexiBasket + nc.managementAllowance + nc.otherAllowances) / nm) * 12
-          ) + Math.round((newJob.employerPF / nm) * 12));
+          setNewCTC(nc.basic + nc.hra + nc.specialAllowance + nc.lta + nc.fuelMaintenance +
+            nc.flexiBasket + nc.managementAllowance + nc.otherAllowances + (newJob.employerPF || 0));
         }
-        // Use first (previous) job for the main CTC
         const prevJob = existing.jobs.find(j => !j.isCurrentJob) || existing.jobs[0];
         const pc = prevJob.components;
-        const pm = prevJob.endMonth - prevJob.startMonth + 1;
-        setAnnualCTC(Math.round(
-          ((pc.basic + pc.hra + pc.specialAllowance + pc.lta + pc.fuelMaintenance +
-            pc.flexiBasket + pc.managementAllowance + pc.otherAllowances) / pm) * 12
-        ) + Math.round((prevJob.employerPF / pm) * 12));
+        setAnnualCTC(pc.basic + pc.hra + pc.specialAllowance + pc.lta + pc.fuelMaintenance +
+          pc.flexiBasket + pc.managementAllowance + pc.otherAllowances + (prevJob.employerPF || 0));
       }
 
       // Optimizations
       setWantNPS(existing.optimizations.employerNPS);
       setWantMeals(existing.optimizations.mealVouchers);
-      setHasHealthInsurance(existing.deductions.section80D.selfPremium > 0);
-      setHealthPremium(existing.deductions.section80D.selfPremium || 15000);
-      setHomeLoanInterest(existing.deductions.section24B);
+      setHasHealthInsurance((existing.deductions.section80D?.selfPremium ?? 0) > 0);
+      setHealthPremium(existing.deductions.section80D?.selfPremium || 15000);
+      setHomeLoanInterest(existing.deductions.section24B || 0);
     }
   }, []);
 
   function buildProfile(): UserProfile {
     const isMetro = METRO_CITIES.includes(city);
+    const existing = loadProfile();
+    const existingJob = existing?.jobs.find(j => j.isCurrentJob) || existing?.jobs[0];
+    const existingComp = existingJob?.components;
 
     const buildJob = (
       id: string, employer: string, ctc: number,
       startMonth: number, endMonth: number, isCurrent: boolean,
     ): JobProfile => {
-      const months = endMonth - startMonth + 1;
       const annualBasic = Math.round(ctc * (basicPercent / 100));
-      const monthlyBasic = Math.ceil(annualBasic / 12);
-      const proRataBasic = monthlyBasic * months;
-      const proRataHRA = Math.round(proRataBasic * 0.5);
-      const proRataPF = Math.round(proRataBasic * 0.12);
-      const proRataSpecial = Math.round((ctc / 12) * months) - proRataBasic - proRataHRA - proRataPF;
+      const annualHRA = Math.round(annualBasic * 0.5);
+      const annualPF = Math.round(annualBasic * 0.12);
+      const preservedLTA = isEditing ? (existingComp?.lta ?? 0) : 0;
+      const preservedFuel = isEditing ? (existingComp?.fuelMaintenance ?? 0) : 0;
+      const preservedFlexi = isEditing ? (existingComp?.flexiBasket ?? 0) : 0;
+      const preservedMgmt = isEditing ? (existingComp?.managementAllowance ?? 0) : 0;
+      const preservedOther = isEditing ? (existingComp?.otherAllowances ?? 0) : 0;
+
+      const annualSpecial = Math.max(
+        0,
+        ctc - annualBasic - annualHRA - annualPF - preservedLTA - preservedFuel - preservedFlexi - preservedMgmt - preservedOther
+      );
 
       return {
         id, employer, startMonth, endMonth, isCurrentJob: isCurrent,
         components: {
-          basic: proRataBasic,
-          hra: proRataHRA,
-          specialAllowance: Math.max(0, proRataSpecial),
-          lta: 0, fuelMaintenance: 0, flexiBasket: 0,
-          managementAllowance: 0, otherAllowances: 0,
+          basic: annualBasic,
+          hra: annualHRA,
+          specialAllowance: annualSpecial,
+          lta: preservedLTA,
+          fuelMaintenance: preservedFuel,
+          flexiBasket: preservedFlexi,
+          managementAllowance: preservedMgmt,
+          otherAllowances: preservedOther,
         },
-        variablePay: 0,
-        variablePayPercent: 0,
-        employerPF: proRataPF,
+        variablePay: isEditing ? (existingJob?.variablePay ?? 0) : 0,
+        variablePayPercent: isEditing ? (existingJob?.variablePayPercent ?? 0) : 0,
+        employerPF: annualPF,
       };
     };
 

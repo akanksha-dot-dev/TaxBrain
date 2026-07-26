@@ -95,9 +95,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
       toggle.addEventListener('click', toggleTheme);
 
-      // Keyboard shortcut: Ctrl+Shift+T
+      // Keyboard shortcut: Alt+Shift+T
       document.addEventListener('keydown', function(e) {
-        if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+        if (e.altKey && e.shiftKey && e.key.toUpperCase() === 'T') {
           e.preventDefault();
           toggleTheme();
         }

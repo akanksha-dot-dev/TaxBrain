@@ -124,7 +124,7 @@ export default function Simulator() {
             label="Monthly Rent"
             value={rent}
             min={0}
-            max={100000}
+            max={Math.max(150000, Math.round((newRegime.grossSalary / 12) * 0.6))}
             step={1000}
             formatValue={(v) => formatCurrency(v)}
             onChange={setRent}

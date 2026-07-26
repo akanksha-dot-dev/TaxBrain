@@ -36,6 +36,15 @@ export default function Dashboard() {
     requestAnimationFrame(() => setVisible(true));
   }, []);
 
+  const handleSelectSample = (sampleProfile: UserProfile) => {
+    saveProfile(sampleProfile);
+    setProfile(sampleProfile);
+    if (sampleProfile.jobs.length > 0) {
+      setComparison(compareRegimes(sampleProfile, TAX_CONFIG_FY2026));
+      setSuggestions(getOptimizationSuggestions(sampleProfile, TAX_CONFIG_FY2026));
+    }
+  };
+
   // Loading state
   if (profile === undefined) {
     return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', color: 'var(--text-muted)' }}>Loading...</div>;
@@ -43,7 +52,7 @@ export default function Dashboard() {
 
   // No profile → Welcome screen
   if (!profile || profile.jobs.length === 0) {
-    return <WelcomeScreen visible={visible} />;
+    return <WelcomeScreen visible={visible} onSelectSample={handleSelectSample} />;
   }
 
   // Profile exists → Full dashboard
@@ -179,10 +188,9 @@ export default function Dashboard() {
 
 // ── Welcome Screen (No Profile) ──
 
-function WelcomeScreen({ visible }: { visible: boolean }) {
+function WelcomeScreen({ visible, onSelectSample }: { visible: boolean; onSelectSample: (p: UserProfile) => void }) {
   function loadSample(profile: UserProfile) {
-    saveProfile(profile);
-    window.location.reload();
+    onSelectSample(profile);
   }
 
   return (
@@ -195,9 +203,9 @@ function WelcomeScreen({ visible }: { visible: boolean }) {
         textAlign: 'center', padding: 'var(--space-10) var(--space-4)',
       }}>
         <div style={{ fontSize: '3.5rem', marginBottom: 'var(--space-4)' }}>🧠</div>
-        <h1 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 'var(--space-3)' }}>
+        <h2 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 'var(--space-3)' }}>
           Your Tax Intelligence Platform
-        </h1>
+        </h2>
         <p style={{ fontSize: 'var(--text-md)', color: 'var(--text-secondary)', maxWidth: '500px', margin: '0 auto var(--space-6)', lineHeight: 'var(--leading-relaxed)' }}>
           Compare New vs Old regime, optimize salary structure, and plan tax-saving strategies. Built for Indian salaried professionals.
         </p>
