@@ -19,7 +19,7 @@ import { formatCurrency, formatCurrencyShort, formatPercent } from '../../lib/fo
 import type { UserProfile } from '../../lib/types';
 
 export default function Simulator() {
-  const [baseProfile, setBaseProfile] = useState<UserProfile | null>(null);
+  const [baseProfile, setBaseProfile] = useState<UserProfile | null | undefined>(undefined);
   const [rent, setRent] = useState(13000);
   const [salaryMultiplier, setSalaryMultiplier] = useState(100);
   const [homeLoanInterest, setHomeLoanInterest] = useState(0);
@@ -36,6 +36,14 @@ export default function Simulator() {
       setNpsPercent(p.optimizations.employerNPS ? 14 : 0);
     }
   }, []);
+
+  if (baseProfile === undefined) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', color: 'var(--text-muted)' }}>
+        Loading simulator...
+      </div>
+    );
+  }
 
   // Build modified profile from slider values
   const modifiedProfile = useMemo(() => {

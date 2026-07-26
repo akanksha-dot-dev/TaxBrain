@@ -24,6 +24,7 @@ import type {
   Suggestion,
   BreakevenParameter,
 } from './types';
+import { TAX_CONFIG_FY2026 } from './tax-rules';
 
 // ============================================================
 // CORE CALCULATION PRIMITIVES
@@ -80,13 +81,9 @@ export function calculateSurcharge(
       const excessIncome = income - threshold;
 
       // Find tax and surcharge at the threshold boundary
-      let thresholdSlabTax = 0;
-      if (slabs) {
-        const thresholdBreakdown = calculateSlabTax(threshold, slabs);
-        thresholdSlabTax = thresholdBreakdown.reduce((sum, item) => sum + item.taxOnSlab, 0);
-      } else {
-        thresholdSlabTax = threshold >= 20000000 ? 5712500 : (threshold >= 10000000 ? 2712500 : 1212500);
-      }
+      const targetSlabs = slabs || TAX_CONFIG_FY2026.newRegime.slabs;
+      const thresholdBreakdown = calculateSlabTax(threshold, targetSlabs);
+      const thresholdSlabTax = thresholdBreakdown.reduce((sum, item) => sum + item.taxOnSlab, 0);
 
       // Previous slab surcharge rate (0% for ₹50L, 10% for ₹1Cr, 15% for ₹2Cr)
       const prevSurchargeRate = i > 0 ? surchargeSlabs[i - 1].rate : 0;

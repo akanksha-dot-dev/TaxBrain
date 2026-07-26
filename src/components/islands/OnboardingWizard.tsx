@@ -12,11 +12,11 @@ import { useState, useEffect } from 'react';
 import { loadProfile, saveProfile, clearProfile } from '../../lib/profile-store';
 import { EMPTY_PROFILE, SAMPLE_PROFILES } from '../../data/default-profile';
 import { formatCurrency } from '../../lib/formatters';
+import { isMetroCity } from '../../lib/tax-rules';
 import type { UserProfile, JobProfile } from '../../lib/types';
 
-const METRO_CITIES = ['Mumbai', 'Delhi', 'Kolkata', 'Chennai'];
 const POPULAR_CITIES = [
-  'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Pune',
+  'Mumbai', 'Delhi', 'Bengaluru', 'Hyderabad', 'Pune',
   'Chennai', 'Kolkata', 'Gurugram', 'Noida', 'Ahmedabad',
 ];
 
@@ -94,23 +94,24 @@ export default function OnboardingWizard() {
   }, []);
 
   function buildProfile(): UserProfile {
-    const isMetro = METRO_CITIES.includes(city);
+    const isMetro = isMetroCity(city);
     const existing = loadProfile();
-    const existingJob = existing?.jobs.find(j => j.isCurrentJob) || existing?.jobs[0];
-    const existingComp = existingJob?.components;
 
     const buildJob = (
       id: string, employer: string, ctc: number,
       startMonth: number, endMonth: number, isCurrent: boolean,
     ): JobProfile => {
+      const targetJob = existing?.jobs.find(j => j.id === id || j.isCurrentJob === isCurrent);
+      const targetComp = targetJob?.components;
+
       const annualBasic = Math.round(ctc * (basicPercent / 100));
-      const annualHRA = isEditing && existingComp?.hra ? existingComp.hra : Math.round(annualBasic * (isMetro ? 0.5 : 0.4));
-      const annualPF = isEditing && existingJob?.employerPF ? existingJob.employerPF : Math.round(annualBasic * 0.12);
-      const preservedLTA = isEditing ? (existingComp?.lta ?? 0) : 0;
-      const preservedFuel = isEditing ? (existingComp?.fuelMaintenance ?? 0) : 0;
-      const preservedFlexi = isEditing ? (existingComp?.flexiBasket ?? 0) : 0;
-      const preservedMgmt = isEditing ? (existingComp?.managementAllowance ?? 0) : 0;
-      const preservedOther = isEditing ? (existingComp?.otherAllowances ?? 0) : 0;
+      const annualHRA = Math.round(annualBasic * (isMetro ? 0.5 : 0.4));
+      const annualPF = Math.round(annualBasic * 0.12);
+      const preservedLTA = isEditing ? (targetComp?.lta ?? 0) : 0;
+      const preservedFuel = isEditing ? (targetComp?.fuelMaintenance ?? 0) : 0;
+      const preservedFlexi = isEditing ? (targetComp?.flexiBasket ?? 0) : 0;
+      const preservedMgmt = isEditing ? (targetComp?.managementAllowance ?? 0) : 0;
+      const preservedOther = isEditing ? (targetComp?.otherAllowances ?? 0) : 0;
 
       const annualSpecial = Math.max(
         0,
@@ -129,8 +130,8 @@ export default function OnboardingWizard() {
           managementAllowance: preservedMgmt,
           otherAllowances: preservedOther,
         },
-        variablePay: isEditing ? (existingJob?.variablePay ?? 0) : 0,
-        variablePayPercent: isEditing ? (existingJob?.variablePayPercent ?? 0) : 0,
+        variablePay: isEditing ? (targetJob?.variablePay ?? 0) : 0,
+        variablePayPercent: isEditing ? (targetJob?.variablePayPercent ?? 0) : 0,
         employerPF: annualPF,
       };
     };
@@ -297,12 +298,12 @@ export default function OnboardingWizard() {
                 value={city} onChange={e => setCity(e.target.value)}>
                 <option value="">Select city</option>
                 {POPULAR_CITIES.map(c => (
-                  <option key={c} value={c}>{c} {METRO_CITIES.includes(c) ? '(Metro)' : ''}</option>
+                  <option key={c} value={c}>{c} {isMetroCity(c) ? '(Metro)' : ''}</option>
                 ))}
                 <option value="Other">Other</option>
               </select>
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                Metro cities (Mumbai, Delhi, Kolkata, Chennai) get 50% HRA; others get 40%
+                Metro cities (50% HRA) vs Non-metro (40% HRA)
               </span>
             </div>
 

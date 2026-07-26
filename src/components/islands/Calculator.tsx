@@ -25,7 +25,7 @@ import {
 import type { UserProfile, TaxResult, SlabBreakdown } from '../../lib/types';
 
 export default function Calculator() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     optimizations: true,
     'job-0': true,
@@ -53,6 +53,14 @@ export default function Calculator() {
   const toggleSection = useCallback((id: string) => {
     setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
   }, []);
+
+  if (profile === undefined) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', color: 'var(--text-muted)' }}>
+        Loading calculator...
+      </div>
+    );
+  }
 
   if (!profile || profile.jobs.length === 0) {
     return (
@@ -407,14 +415,16 @@ function InputField({ label, value, onChange, type, suffix }: {
 function ToggleField({ label, checked, onChange, info }: {
   label: string;
   checked: boolean;
-  onChange: (checked: boolean) => void;
+  onChange: (v: boolean) => void;
   info?: string;
 }) {
   return (
-    <div style={{
+    <label style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: 'var(--space-3) 0',
       borderBottom: '1px solid var(--border-subtle)',
+      cursor: 'pointer',
+      userSelect: 'none',
     }}>
       <div>
         <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-primary)' }}>{label}</div>
@@ -428,7 +438,7 @@ function ToggleField({ label, checked, onChange, info }: {
         role="switch"
         aria-label={label}
       />
-    </div>
+    </label>
   );
 }
 
