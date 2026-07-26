@@ -65,22 +65,39 @@ export function calculateCess(tax: number, cessRate: number): number {
   return Math.round(tax * cessRate);
 }
 
-/** Calculate surcharge based on income brackets */
+/** Calculate surcharge based on income brackets with exact marginal relief across all thresholds */
 export function calculateSurcharge(
   tax: number,
   income: number,
-  surchargeSlabs: readonly { min: number; max: number; rate: number }[]
+  surchargeSlabs: readonly { min: number; max: number; rate: number }[],
+  slabs?: readonly TaxSlab[]
 ): number {
-  for (const slab of surchargeSlabs) {
+  for (let i = 0; i < surchargeSlabs.length; i++) {
+    const slab = surchargeSlabs[i];
     if (income >= slab.min && income <= slab.max) {
       const rawSurcharge = Math.round(tax * slab.rate);
-      const threshold = slab.min - 1; // e.g. 50,00,000
+      const threshold = slab.min - 1; // e.g. 50,00,000, 1,00,00,000, 2,00,00,000
       const excessIncome = income - threshold;
-      // Marginal relief: Surcharge should not exceed income in excess of threshold
-      if (rawSurcharge > excessIncome) {
-        return Math.max(0, excessIncome);
+
+      // Find tax and surcharge at the threshold boundary
+      let thresholdSlabTax = 0;
+      if (slabs) {
+        const thresholdBreakdown = calculateSlabTax(threshold, slabs);
+        thresholdSlabTax = thresholdBreakdown.reduce((sum, item) => sum + item.taxOnSlab, 0);
+      } else {
+        thresholdSlabTax = threshold >= 20000000 ? 5712500 : (threshold >= 10000000 ? 2712500 : 1212500);
       }
-      return rawSurcharge;
+
+      // Previous slab surcharge rate (0% for ₹50L, 10% for ₹1Cr, 15% for ₹2Cr)
+      const prevSurchargeRate = i > 0 ? surchargeSlabs[i - 1].rate : 0;
+      const thresholdSurcharge = Math.round(thresholdSlabTax * prevSurchargeRate);
+
+      const taxDelta = Math.max(0, tax - thresholdSlabTax);
+      // Universal Marginal Relief: Surcharge <= excessIncome + thresholdSurcharge - taxDelta
+      const maxAllowedSurcharge = excessIncome + thresholdSurcharge - taxDelta;
+
+      if (maxAllowedSurcharge <= 0) return 0;
+      return Math.min(rawSurcharge, maxAllowedSurcharge);
     }
   }
   return 0;
@@ -177,16 +194,13 @@ function calculateJobGross(job: JobProfile): number {
   const months = Math.max(0, job.endMonth - job.startMonth + 1);
   const c = job.components || {};
 
-  const monthlyFixed = Math.ceil(
-    ((c.basic ?? 0) + (c.hra ?? 0) + (c.lta ?? 0) + (c.specialAllowance ?? 0) +
-     (c.fuelMaintenance ?? 0) + (c.flexiBasket ?? 0) + (c.managementAllowance ?? 0) +
-     (c.otherAllowances ?? 0)) / 12
-  );
+  const annualFixed =
+    (c.basic ?? 0) + (c.hra ?? 0) + (c.lta ?? 0) + (c.specialAllowance ?? 0) +
+    (c.fuelMaintenance ?? 0) + (c.flexiBasket ?? 0) + (c.managementAllowance ?? 0) +
+    (c.otherAllowances ?? 0);
 
-  const fixedSalary = monthlyFixed * months;
-
-  // Variable pay: annual × months/12 × achievement%
-  const variable = Math.round((job.variablePay ?? 0) * months / 12 * ((job.variablePayPercent ?? 0) / 100));
+  const fixedSalary = months === 12 ? annualFixed : Math.round(annualFixed * (months / 12));
+  const variable = Math.round((job.variablePay ?? 0) * (months / 12) * ((job.variablePayPercent ?? 0) / 100));
 
   return fixedSalary + variable;
 }
@@ -289,17 +303,15 @@ export function calculateNewRegimeTax(
   let totalExemptions = 0;
   if (profile.optimizations.employerNPS) {
     for (const job of profile.jobs) {
-      if (job.isCurrentJob || profile.jobs.length === 1) {
-        const nps = calculateEmployerNPS(job, 'new', config);
-        if (nps > 0) {
-          exemptions.push({
-            name: 'Employer NPS Contribution',
-            section: '80CCD(2)',
-            amount: nps,
-            details: `14% of Basic (${formatJobPeriod(job)})`,
-          });
-          totalExemptions += nps;
-        }
+      const nps = calculateEmployerNPS(job, 'new', config);
+      if (nps > 0) {
+        exemptions.push({
+          name: 'Employer NPS Contribution',
+          section: '80CCD(2)',
+          amount: nps,
+          details: `14% of Basic (${formatJobPeriod(job)})`,
+        });
+        totalExemptions += nps;
       }
     }
   }
@@ -454,6 +466,19 @@ export function calculateOldRegimeTax(
     grossSalary += calculateJobGross(job);
   }
 
+  // Check aggregate employer contribution cap (Sec 17(2)(vii) - ₹7,50,000)
+  let totalEmployerContrib = 0;
+  for (const job of profile.jobs) {
+    const months = Math.max(0, job.endMonth - job.startMonth + 1);
+    const epf = Math.round((job.employerPF ?? 0) * (months / 12));
+    const nps = profile.optimizations.employerNPS ? calculateEmployerNPS(job, 'old', config) : 0;
+    totalEmployerContrib += (epf + nps);
+  }
+  if (totalEmployerContrib > config.employerPFESICCap) {
+    const excessPerquisite = totalEmployerContrib - config.employerPFESICCap;
+    grossSalary += excessPerquisite;
+  }
+
   // Step 2: HRA exemption
   let totalExemptions = 0;
   if (profile.monthlyRent > 0) {
@@ -588,9 +613,7 @@ export function calculateOldRegimeTax(
   if (profile.optimizations.employerNPS) {
     let totalNPS = 0;
     for (const job of profile.jobs) {
-      if (job.isCurrentJob || profile.jobs.length === 1) {
-        totalNPS += calculateEmployerNPS(job, 'old', config);
-      }
+      totalNPS += calculateEmployerNPS(job, 'old', config);
     }
     if (totalNPS > 0) {
       deductions.push({
@@ -705,7 +728,7 @@ export function calculateOldRegimeTax(
     regime.rebate.incomeLimit
   );
   const taxAfterRebate = Math.max(0, taxFromSlabs - rebate - marginalRelief);
-  const surcharge = calculateSurcharge(taxAfterRebate, netTaxableIncome, regime.surchargeSlabs);
+  const surcharge = calculateSurcharge(taxAfterRebate, netTaxableIncome, regime.surchargeSlabs, regime.slabs);
   const cess = calculateCess(taxAfterRebate + surcharge, regime.cessRate);
 
   // Step 17: Total tax
@@ -829,9 +852,9 @@ function applyParameterChange(
     case 'salary': {
       // Scale all components proportionally
       const currentGross = modified.jobs.reduce((sum, job) => {
-        const c = job.components;
-        return sum + c.basic + c.hra + c.lta + c.specialAllowance +
-          c.fuelMaintenance + c.flexiBasket + c.managementAllowance + c.otherAllowances;
+        const c = job.components || {};
+        return sum + (c.basic ?? 0) + (c.hra ?? 0) + (c.lta ?? 0) + (c.specialAllowance ?? 0) +
+          (c.fuelMaintenance ?? 0) + (c.flexiBasket ?? 0) + (c.managementAllowance ?? 0) + (c.otherAllowances ?? 0);
       }, 0);
       if (currentGross > 0) {
         const ratio = value / currentGross;
