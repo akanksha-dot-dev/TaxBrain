@@ -1,16 +1,15 @@
 /**
- * TaxBrain — Onboarding Wizard
+ * TaxBrain — Onboarding Wizard / Profile Editor
  *
- * 3-step wizard for first-time users to enter their tax profile.
- * Step 1: Basics (name, city, rent, age)
- * Step 2: Salary (CTC or component-wise, job count)
- * Step 3: Quick optimizations (NPS, meals, health insurance)
+ * Two modes:
+ * 1. New user (no profile) → 3-step wizard with sample profiles
+ * 2. Existing user → Pre-filled form for editing + Reset button
  *
- * On completion, saves profile to localStorage and redirects to dashboard.
+ * Steps: Basics → Salary → Optimizations → Dashboard
  */
 
-import { useState } from 'react';
-import { saveProfile } from '../../lib/profile-store';
+import { useState, useEffect } from 'react';
+import { loadProfile, saveProfile, clearProfile } from '../../lib/profile-store';
 import { EMPTY_PROFILE, SAMPLE_PROFILES } from '../../data/default-profile';
 import { formatCurrency } from '../../lib/formatters';
 import type { UserProfile, JobProfile } from '../../lib/types';
@@ -23,6 +22,8 @@ const POPULAR_CITIES = [
 
 export default function OnboardingWizard() {
   const [step, setStep] = useState(1);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Step 1: Basics
   const [name, setName] = useState('');
@@ -34,7 +35,7 @@ export default function OnboardingWizard() {
   const [annualCTC, setAnnualCTC] = useState(0);
   const [basicPercent, setBasicPercent] = useState(40);
   const [hasJobSwitch, setHasJobSwitch] = useState(false);
-  const [switchMonth, setSwitchMonth] = useState(6); // Sep (month 6 of FY)
+  const [switchMonth, setSwitchMonth] = useState(6);
   const [newCTC, setNewCTC] = useState(0);
 
   // Step 3: Optimizations
@@ -43,6 +44,64 @@ export default function OnboardingWizard() {
   const [hasHealthInsurance, setHasHealthInsurance] = useState(false);
   const [healthPremium, setHealthPremium] = useState(15000);
   const [homeLoanInterest, setHomeLoanInterest] = useState(0);
+
+  // On mount: pre-fill from existing profile if one exists
+  useEffect(() => {
+    const existing = loadProfile();
+    if (existing && existing.jobs.length > 0) {
+      setIsEditing(true);
+      setName(existing.name);
+      setAge(existing.age);
+      setCity(existing.city);
+      setMonthlyRent(existing.monthlyRent);
+
+      // Reverse-engineer CTC from job components
+      const currentJob = existing.jobs.find(j => j.isCurrentJob) || existing.jobs[0];
+      const c = currentJob.components;
+      const months = currentJob.endMonth - currentJob.startMonth + 1;
+      const annualized = Math.round(
+        ((c.basic + c.hra + c.specialAllowance + c.lta + c.fuelMaintenance +
+          c.flexiBasket + c.managementAllowance + c.otherAllowances) / months) * 12
+      ) + Math.round((currentJob.employerPF / months) * 12);
+      setAnnualCTC(annualized);
+
+      // Estimate basic % from components
+      const annualBasic = Math.round((c.basic / months) * 12);
+      if (annualized > 0) {
+        setBasicPercent(Math.round((annualBasic / annualized) * 100));
+      }
+
+      // Multi-job detection
+      if (existing.jobs.length > 1) {
+        setHasJobSwitch(true);
+        const newJob = existing.jobs.find(j => j.isCurrentJob);
+        if (newJob) {
+          setSwitchMonth(newJob.startMonth);
+          const nc = newJob.components;
+          const nm = newJob.endMonth - newJob.startMonth + 1;
+          setNewCTC(Math.round(
+            ((nc.basic + nc.hra + nc.specialAllowance + nc.lta + nc.fuelMaintenance +
+              nc.flexiBasket + nc.managementAllowance + nc.otherAllowances) / nm) * 12
+          ) + Math.round((newJob.employerPF / nm) * 12));
+        }
+        // Use first (previous) job for the main CTC
+        const prevJob = existing.jobs.find(j => !j.isCurrentJob) || existing.jobs[0];
+        const pc = prevJob.components;
+        const pm = prevJob.endMonth - prevJob.startMonth + 1;
+        setAnnualCTC(Math.round(
+          ((pc.basic + pc.hra + pc.specialAllowance + pc.lta + pc.fuelMaintenance +
+            pc.flexiBasket + pc.managementAllowance + pc.otherAllowances) / pm) * 12
+        ) + Math.round((prevJob.employerPF / pm) * 12));
+      }
+
+      // Optimizations
+      setWantNPS(existing.optimizations.employerNPS);
+      setWantMeals(existing.optimizations.mealVouchers);
+      setHasHealthInsurance(existing.deductions.section80D.selfPremium > 0);
+      setHealthPremium(existing.deductions.section80D.selfPremium || 15000);
+      setHomeLoanInterest(existing.deductions.section24B);
+    }
+  }, []);
 
   function buildProfile(): UserProfile {
     const isMetro = METRO_CITIES.includes(city);
@@ -81,7 +140,6 @@ export default function OnboardingWizard() {
     } else {
       jobs.push(buildJob('job1', 'Employer', annualCTC, 1, 12, true));
     }
-
 
     return {
       ...EMPTY_PROFILE,
@@ -125,8 +183,68 @@ export default function OnboardingWizard() {
     window.location.href = '/';
   }
 
+  function handleReset() {
+    clearProfile();
+    // Clear all local state
+    setName(''); setAge(25); setCity(''); setMonthlyRent(0);
+    setAnnualCTC(0); setBasicPercent(40); setHasJobSwitch(false);
+    setSwitchMonth(6); setNewCTC(0);
+    setWantNPS(false); setWantMeals(false); setHasHealthInsurance(false);
+    setHealthPremium(15000); setHomeLoanInterest(0);
+    setIsEditing(false); setShowResetConfirm(false); setStep(1);
+  }
+
   return (
     <div style={{ maxWidth: '640px', margin: '0 auto' }}>
+      {/* Header — Edit mode indicator */}
+      {isEditing && step === 1 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-4)',
+          background: 'var(--bg-surface-raised)', borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-subtle)',
+        }}>
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+            ✏️ Editing existing profile
+          </span>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowResetConfirm(true)}
+            style={{ color: 'var(--color-danger)', fontSize: 'var(--text-xs)' }}>
+            🗑️ Reset &amp; Start Over
+          </button>
+        </div>
+      )}
+
+      {/* Reset Confirmation Modal */}
+      {showResetConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: 'var(--space-4)',
+        }}>
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
+            padding: 'var(--space-8)', maxWidth: '400px', width: '100%',
+            border: '1px solid var(--border-subtle)',
+          }}>
+            <h3 style={{ color: 'var(--text-primary)', marginBottom: 'var(--space-3)' }}>
+              Reset your profile?
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-6)', lineHeight: 'var(--leading-relaxed)' }}>
+              This will delete all your saved data (salary, deductions, action items) and return you to the welcome screen. This cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+              <button className="btn btn-ghost" onClick={() => setShowResetConfirm(false)}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={handleReset}
+                style={{ background: 'var(--color-danger)' }}>
+                Yes, Reset Everything
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Progress */}
       <div style={{
         display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-8)',
@@ -147,13 +265,15 @@ export default function OnboardingWizard() {
             fontSize: 'var(--text-2xl)', fontWeight: 700,
             color: 'var(--text-primary)', marginBottom: 'var(--space-2)',
           }}>
-            Let's set up your tax profile
+            {isEditing ? 'Edit your profile' : "Let's set up your tax profile"}
           </h2>
           <p style={{
             color: 'var(--text-secondary)', marginBottom: 'var(--space-8)',
             lineHeight: 'var(--leading-relaxed)',
           }}>
-            Takes about 60 seconds. All data stays in your browser — we never send anything to a server.
+            {isEditing
+              ? 'Update your details below. Changes are saved when you complete all steps.'
+              : 'Takes about 60 seconds. All data stays in your browser — we never send anything to a server.'}
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
@@ -193,7 +313,7 @@ export default function OnboardingWizard() {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-8)' }}>
-            <div />
+            <a href="/" className="btn btn-ghost">← Dashboard</a>
             <button className="btn btn-primary" onClick={() => setStep(2)}>
               Next: Salary →
             </button>
@@ -276,7 +396,7 @@ export default function OnboardingWizard() {
                       value={newCTC || ''} onChange={e => setNewCTC(Number(e.target.value))} />
                   </div>
                   <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                    The CTC above (₹{formatCurrency(annualCTC)}) will be used for the previous job.
+                    The CTC above ({formatCurrency(annualCTC)}) will be used for the previous job.
                   </span>
                 </div>
               )}
@@ -347,14 +467,14 @@ export default function OnboardingWizard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-8)' }}>
             <button className="btn btn-ghost" onClick={() => setStep(2)}>← Back</button>
             <button className="btn btn-primary btn-lg" onClick={handleComplete}>
-              🚀 See My Tax Breakdown
+              {isEditing ? '💾 Save Changes' : '🚀 See My Tax Breakdown'}
             </button>
           </div>
         </div>
       )}
 
-      {/* Sample Profiles */}
-      {step === 1 && (
+      {/* Sample Profiles — only shown on step 1 for new users */}
+      {step === 1 && !isEditing && (
         <div style={{ marginTop: 'var(--space-10)' }}>
           <div className="divider" />
           <p style={{

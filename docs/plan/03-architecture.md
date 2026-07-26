@@ -246,7 +246,7 @@ src/
 │   └── global.css                # All styles (vanilla CSS)
 │
 └── data/
-    └── default-profile.ts        # YOUR default profile data
+    └── default-profile.ts        # Empty profile + 4 sample profiles
 ```
 
 ---

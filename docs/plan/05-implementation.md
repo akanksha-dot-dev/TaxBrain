@@ -13,7 +13,7 @@
 | 1.4 | Build core tax engine (all calculation functions) | `src/lib/tax-engine.ts` | 2 hrs |
 | 1.5 | Build profile store (localStorage manager) | `src/lib/profile-store.ts` | 30 min |
 | 1.6 | Build utility functions (formatters, helpers) | `src/lib/formatters.ts` | 20 min |
-| 1.7 | Create default profile with YOUR data | `src/data/default-profile.ts` | 30 min |
+| 1.7 | Create empty profile + sample profiles | `src/data/default-profile.ts` | 30 min |
 | 1.8 | Design global CSS (dark theme, design system) | `src/styles/global.css` | 1.5 hrs |
 | 1.9 | Build Layout + Sidebar components | `src/components/Layout.astro`, `Sidebar.astro` | 45 min |
 | 1.10 | Build Calculator island (React) | `src/components/islands/Calculator.tsx` | 3 hrs |
@@ -200,13 +200,11 @@ npm run dev
 
 ### Manual Calculation Verification
 
-The tax engine MUST produce these exact results for the default profile:
-
-| Scenario | Expected New Regime Tax | Expected Old Regime Tax |
-|---|---|---|
-| FY 2026-27, Combined (both jobs), No optimization | ₹1,76,010 | ₹2,52,240 |
-| FY 2026-27, Combined, With NPS + Meal Vouchers | ₹1,37,520 | — |
-| FY 2027-28, Full year new job, With NPS + Meal Vouchers | ₹1,99,140 | ₹3,30,220 |
+The tax engine MUST produce correct results for any valid `UserProfile`. Test against the 4 sample profiles in `src/data/default-profile.ts` (Fresh Graduate ₹7.5L, Mid-Career ₹15L, Job Switcher ₹20L, Senior Pro ₹35L). Verify:
+- New Regime tax is always calculated
+- Old Regime tax is always calculated
+- Regime comparison picks the correct winner
+- Slab breakdown sums match total tax before rebate
 
 ### Browser Testing
 - Chrome (latest), Firefox, Safari, Mobile Chrome

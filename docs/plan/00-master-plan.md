@@ -1,6 +1,6 @@
 # TaxBrain — Master Implementation Plan (v2)
 
-> **Your personal tax intelligence platform at `tax.akanksha.dev`**
+> **Free Indian tax intelligence platform at `tax.akanksha.dev`**
 
 ---
 
@@ -13,7 +13,7 @@
 | 3 | [03-architecture.md](03-architecture.md) | Personal vs Generalized architecture. Data model. Component tree. Agent-parsability |
 | 4 | [04-features.md](04-features.md) | 60+ features across 5 pages, 3 priority tiers. Design system specification |
 | 5 | [05-implementation.md](05-implementation.md) | File-by-file build plan. Tax engine API. Build phases. Verification |
-| 6 | [06-my-tax-profile.md](06-my-tax-profile.md) | YOUR personal tax data. Pre-calculated results. Action items. Break-even data |
+| 6 | _(removed — personal data, not applicable to public version)_ | — |
 
 ### Cross-References to Design Research
 
@@ -74,6 +74,6 @@ Key decisions validated against comprehensive research (extracted into `docs/res
 3. Read this file for technical decisions
 4. Start with [05-implementation.md](05-implementation.md) for the build order
 5. Reference [04-features.md](04-features.md) for what each screen should contain
-6. Use [06-my-tax-profile.md](06-my-tax-profile.md) for default user data
+6. Use `src/data/default-profile.ts` for sample profiles and empty profile template
 7. Follow [03-architecture.md](03-architecture.md) for data model and component structure
 8. Apply design patterns from [design-research-extracts.md](../research/design-research-extracts.md)
