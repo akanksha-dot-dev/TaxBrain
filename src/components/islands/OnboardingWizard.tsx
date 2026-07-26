@@ -1,0 +1,409 @@
+/**
+ * TaxBrain — Onboarding Wizard
+ *
+ * 3-step wizard for first-time users to enter their tax profile.
+ * Step 1: Basics (name, city, rent, age)
+ * Step 2: Salary (CTC or component-wise, job count)
+ * Step 3: Quick optimizations (NPS, meals, health insurance)
+ *
+ * On completion, saves profile to localStorage and redirects to dashboard.
+ */
+
+import { useState } from 'react';
+import { saveProfile } from '../../lib/profile-store';
+import { EMPTY_PROFILE, SAMPLE_PROFILES } from '../../data/default-profile';
+import { formatCurrency } from '../../lib/formatters';
+import type { UserProfile, JobProfile } from '../../lib/types';
+
+const METRO_CITIES = ['Mumbai', 'Delhi', 'Kolkata', 'Chennai'];
+const POPULAR_CITIES = [
+  'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Pune',
+  'Chennai', 'Kolkata', 'Gurugram', 'Noida', 'Ahmedabad',
+];
+
+export default function OnboardingWizard() {
+  const [step, setStep] = useState(1);
+
+  // Step 1: Basics
+  const [name, setName] = useState('');
+  const [age, setAge] = useState(25);
+  const [city, setCity] = useState('');
+  const [monthlyRent, setMonthlyRent] = useState(0);
+
+  // Step 2: Salary
+  const [annualCTC, setAnnualCTC] = useState(0);
+  const [basicPercent, setBasicPercent] = useState(40);
+  const [hasJobSwitch, setHasJobSwitch] = useState(false);
+  const [switchMonth, setSwitchMonth] = useState(6); // Sep (month 6 of FY)
+  const [newCTC, setNewCTC] = useState(0);
+
+  // Step 3: Optimizations
+  const [wantNPS, setWantNPS] = useState(false);
+  const [wantMeals, setWantMeals] = useState(false);
+  const [hasHealthInsurance, setHasHealthInsurance] = useState(false);
+  const [healthPremium, setHealthPremium] = useState(15000);
+  const [homeLoanInterest, setHomeLoanInterest] = useState(0);
+
+  function buildProfile(): UserProfile {
+    const isMetro = METRO_CITIES.includes(city);
+
+    const buildJob = (
+      id: string, employer: string, ctc: number,
+      startMonth: number, endMonth: number, isCurrent: boolean,
+    ): JobProfile => {
+      const months = endMonth - startMonth + 1;
+      const annualBasic = Math.round(ctc * (basicPercent / 100));
+      const monthlyBasic = Math.ceil(annualBasic / 12);
+      const proRataBasic = monthlyBasic * months;
+      const proRataHRA = Math.round(proRataBasic * 0.5);
+      const proRataPF = Math.round(proRataBasic * 0.12);
+      const proRataSpecial = Math.round((ctc / 12) * months) - proRataBasic - proRataHRA - proRataPF;
+
+      return {
+        id, employer, startMonth, endMonth, isCurrentJob: isCurrent,
+        components: {
+          basic: proRataBasic,
+          hra: proRataHRA,
+          specialAllowance: Math.max(0, proRataSpecial),
+          lta: 0, fuelMaintenance: 0, flexiBasket: 0,
+          managementAllowance: 0, otherAllowances: 0,
+        },
+        variablePay: 0,
+        variablePayPercent: 0,
+        employerPF: proRataPF,
+      };
+    };
+
+    const jobs: JobProfile[] = [];
+    if (hasJobSwitch && switchMonth > 1) {
+      jobs.push(buildJob('job1', 'Previous Employer', annualCTC, 1, switchMonth - 1, false));
+      jobs.push(buildJob('job2', 'Current Employer', newCTC || annualCTC, switchMonth, 12, true));
+    } else {
+      jobs.push(buildJob('job1', 'Employer', annualCTC, 1, 12, true));
+    }
+
+
+    return {
+      ...EMPTY_PROFILE,
+      name: name || 'User',
+      age,
+      city,
+      isMetroCity: isMetro,
+      monthlyRent,
+      jobs,
+      deductions: {
+        ...EMPTY_PROFILE.deductions,
+        section80CCD2: { enabled: wantNPS, percentage: 14 },
+        section80D: {
+          selfPremium: hasHealthInsurance ? healthPremium : 0,
+          parentsPremium: 0,
+          parentsAreSenior: false,
+          preventiveCheckup: 0,
+        },
+        section24B: homeLoanInterest,
+      },
+      optimizations: {
+        employerNPS: wantNPS,
+        mealVouchers: wantMeals,
+        phoneReimbursement: false,
+        monthlyPhoneAmount: 0,
+        ltaClaimed: false,
+        ltaAmount: 0,
+      },
+      lastUpdated: new Date().toISOString(),
+    };
+  }
+
+  function handleComplete() {
+    const profile = buildProfile();
+    saveProfile(profile);
+    window.location.href = '/';
+  }
+
+  function handleSampleProfile(profileData: UserProfile) {
+    saveProfile(profileData);
+    window.location.href = '/';
+  }
+
+  return (
+    <div style={{ maxWidth: '640px', margin: '0 auto' }}>
+      {/* Progress */}
+      <div style={{
+        display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-8)',
+      }}>
+        {[1, 2, 3].map(s => (
+          <div key={s} style={{
+            flex: 1, height: '4px', borderRadius: 'var(--radius-full)',
+            background: s <= step ? 'var(--accent-primary)' : 'var(--bg-surface-raised)',
+            transition: 'background 0.3s ease',
+          }} />
+        ))}
+      </div>
+
+      {/* Step 1: Basics */}
+      {step === 1 && (
+        <div style={{ animation: 'fadeInUp 0.3s ease' }}>
+          <h2 style={{
+            fontSize: 'var(--text-2xl)', fontWeight: 700,
+            color: 'var(--text-primary)', marginBottom: 'var(--space-2)',
+          }}>
+            Let's set up your tax profile
+          </h2>
+          <p style={{
+            color: 'var(--text-secondary)', marginBottom: 'var(--space-8)',
+            lineHeight: 'var(--leading-relaxed)',
+          }}>
+            Takes about 60 seconds. All data stays in your browser — we never send anything to a server.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+            <div className="input-group">
+              <label className="input-label" htmlFor="name">Your first name</label>
+              <input id="name" className="input" type="text" placeholder="e.g., Priya"
+                value={name} onChange={e => setName(e.target.value)} />
+            </div>
+
+            <div className="input-group">
+              <label className="input-label" htmlFor="age">Age</label>
+              <input id="age" className="input" type="number" min={18} max={80}
+                value={age} onChange={e => setAge(Number(e.target.value))} />
+            </div>
+
+            <div className="input-group">
+              <label className="input-label" htmlFor="city">City you live in</label>
+              <select id="city" className="input"
+                value={city} onChange={e => setCity(e.target.value)}>
+                <option value="">Select city</option>
+                {POPULAR_CITIES.map(c => (
+                  <option key={c} value={c}>{c} {METRO_CITIES.includes(c) ? '(Metro)' : ''}</option>
+                ))}
+                <option value="Other">Other</option>
+              </select>
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                Metro cities (Mumbai, Delhi, Kolkata, Chennai) get 50% HRA; others get 40%
+              </span>
+            </div>
+
+            <div className="input-group">
+              <label className="input-label" htmlFor="rent">Monthly rent (₹)</label>
+              <input id="rent" className="input" type="number" min={0} step={1000}
+                placeholder="0 if you own your home"
+                value={monthlyRent || ''} onChange={e => setMonthlyRent(Number(e.target.value))} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-8)' }}>
+            <div />
+            <button className="btn btn-primary" onClick={() => setStep(2)}>
+              Next: Salary →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Salary */}
+      {step === 2 && (
+        <div style={{ animation: 'fadeInUp 0.3s ease' }}>
+          <h2 style={{
+            fontSize: 'var(--text-2xl)', fontWeight: 700,
+            color: 'var(--text-primary)', marginBottom: 'var(--space-2)',
+          }}>
+            Your salary details
+          </h2>
+          <p style={{
+            color: 'var(--text-secondary)', marginBottom: 'var(--space-8)',
+          }}>
+            Enter your annual CTC. We'll estimate the component split — you can fine-tune later in the Calculator.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+            <div className="input-group">
+              <label className="input-label" htmlFor="ctc">Annual CTC (₹)</label>
+              <input id="ctc" className="input" type="number" min={0} step={10000}
+                placeholder="e.g., 1200000"
+                value={annualCTC || ''} onChange={e => setAnnualCTC(Number(e.target.value))} />
+              {annualCTC > 0 && (
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+                  {formatCurrency(annualCTC)} / year • {formatCurrency(Math.round(annualCTC / 12))} / month
+                </span>
+              )}
+            </div>
+
+            <div className="input-group">
+              <label className="input-label" htmlFor="basic-pct">Basic salary as % of CTC</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                <input id="basic-pct" className="slider" type="range" min={30} max={60}
+                  value={basicPercent} onChange={e => setBasicPercent(Number(e.target.value))} />
+                <span style={{ fontWeight: 600, minWidth: '45px', color: 'var(--text-primary)' }}>{basicPercent}%</span>
+              </div>
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                Most companies keep Basic at 40-50% of CTC. Check your offer letter or payslip.
+              </span>
+            </div>
+
+            <div style={{
+              padding: 'var(--space-4)', background: 'var(--bg-surface-raised)',
+              borderRadius: 'var(--radius-md)',
+            }}>
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: 'var(--space-3)', cursor: 'pointer',
+              }}>
+                <input type="checkbox" className="toggle"
+                  checked={hasJobSwitch} onChange={e => setHasJobSwitch(e.target.checked)} />
+                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                  I switched jobs this financial year
+                </span>
+              </label>
+
+              {hasJobSwitch && (
+                <div style={{
+                  marginTop: 'var(--space-4)', display: 'flex',
+                  flexDirection: 'column', gap: 'var(--space-4)',
+                }}>
+                  <div className="input-group">
+                    <label className="input-label" htmlFor="switch-month">Month you joined new job</label>
+                    <select id="switch-month" className="input"
+                      value={switchMonth} onChange={e => setSwitchMonth(Number(e.target.value))}>
+                      {['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'].map((m, i) => (
+                        <option key={m} value={i + 2}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="input-group">
+                    <label className="input-label" htmlFor="new-ctc">New job CTC (₹/year)</label>
+                    <input id="new-ctc" className="input" type="number" min={0} step={10000}
+                      placeholder="CTC at new company"
+                      value={newCTC || ''} onChange={e => setNewCTC(Number(e.target.value))} />
+                  </div>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                    The CTC above (₹{formatCurrency(annualCTC)}) will be used for the previous job.
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-8)' }}>
+            <button className="btn btn-ghost" onClick={() => setStep(1)}>← Back</button>
+            <button className="btn btn-primary"
+              disabled={annualCTC <= 0}
+              onClick={() => setStep(3)}>
+              Next: Optimizations →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Optimizations */}
+      {step === 3 && (
+        <div style={{ animation: 'fadeInUp 0.3s ease' }}>
+          <h2 style={{
+            fontSize: 'var(--text-2xl)', fontWeight: 700,
+            color: 'var(--text-primary)', marginBottom: 'var(--space-2)',
+          }}>
+            Quick optimizations
+          </h2>
+          <p style={{
+            color: 'var(--text-secondary)', marginBottom: 'var(--space-8)',
+          }}>
+            Check what applies. You can always change these later.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <ToggleOption
+              label="Employer NPS contribution"
+              hint="14% of Basic, tax-free in both regimes. Ask HR to set it up."
+              checked={wantNPS} onChange={setWantNPS}
+            />
+            <ToggleOption
+              label="Meal vouchers / food card"
+              hint="Up to ₹1,05,600/year tax-free (₹200/meal × 2 × 22 days × 12 months)"
+              checked={wantMeals} onChange={setWantMeals}
+            />
+            <ToggleOption
+              label="I have personal health insurance"
+              hint="Premium qualifies for Section 80D deduction in Old Regime"
+              checked={hasHealthInsurance} onChange={setHasHealthInsurance}
+            />
+            {hasHealthInsurance && (
+              <div className="input-group" style={{ paddingLeft: 'var(--space-8)' }}>
+                <label className="input-label" htmlFor="health-amt">Annual premium (₹)</label>
+                <input id="health-amt" className="input" type="number" min={0} step={1000}
+                  value={healthPremium} onChange={e => setHealthPremium(Number(e.target.value))} />
+              </div>
+            )}
+
+            <div className="input-group">
+              <label className="input-label" htmlFor="homeloan">Home loan interest (₹/year, 0 if none)</label>
+              <input id="homeloan" className="input" type="number" min={0} step={10000}
+                placeholder="0"
+                value={homeLoanInterest || ''} onChange={e => setHomeLoanInterest(Number(e.target.value))} />
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                Section 24(b) allows up to ₹2,00,000 deduction on home loan interest (Old Regime only)
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-8)' }}>
+            <button className="btn btn-ghost" onClick={() => setStep(2)}>← Back</button>
+            <button className="btn btn-primary btn-lg" onClick={handleComplete}>
+              🚀 See My Tax Breakdown
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Sample Profiles */}
+      {step === 1 && (
+        <div style={{ marginTop: 'var(--space-10)' }}>
+          <div className="divider" />
+          <p style={{
+            fontSize: 'var(--text-sm)', color: 'var(--text-muted)',
+            textAlign: 'center', marginBottom: 'var(--space-4)',
+          }}>
+            Or explore with a sample profile
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--space-3)' }}>
+            {SAMPLE_PROFILES.map(sp => (
+              <button key={sp.id} className="card" onClick={() => handleSampleProfile(sp.profile)}
+                style={{
+                  cursor: 'pointer', textAlign: 'center', padding: 'var(--space-4)',
+                  border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)',
+                }}>
+                <div style={{ fontSize: '1.5rem', marginBottom: 'var(--space-2)' }}>{sp.emoji}</div>
+                <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {sp.label}
+                </div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  {sp.ctc} CTC
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ToggleOption({ label, hint, checked, onChange }: {
+  label: string; hint: string; checked: boolean; onChange: (v: boolean) => void;
+}) {
+  return (
+    <div style={{
+      padding: 'var(--space-4)', background: 'var(--bg-surface-raised)',
+      borderRadius: 'var(--radius-md)',
+    }}>
+      <label style={{
+        display: 'flex', alignItems: 'center', gap: 'var(--space-3)', cursor: 'pointer',
+      }}>
+        <input type="checkbox" className="toggle"
+          checked={checked} onChange={e => onChange(e.target.checked)} />
+        <div>
+          <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{label}</div>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>{hint}</div>
+        </div>
+      </label>
+    </div>
+  );
+}

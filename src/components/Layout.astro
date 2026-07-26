@@ -1,0 +1,108 @@
+---
+/**
+ * TaxBrain — Base Layout
+ *
+ * HTML shell for all pages. Handles:
+ * - Meta tags & SEO
+ * - Global CSS
+ * - Theme toggle (dark/light)
+ * - Skip-to-content accessibility
+ * - Sidebar navigation
+ */
+
+import Sidebar from './Sidebar.astro';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = 'Indian tax intelligence platform for salaried professionals. Compare New vs Old tax regime, optimize salary structure, and plan tax-saving strategies.'
+} = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content={description} />
+
+  <!-- SEO -->
+  <title>{title}</title>
+  <link rel="canonical" href={canonicalURL} />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={canonicalURL} />
+
+  <!-- Prefers color scheme -->
+  <meta name="color-scheme" content="dark light" />
+
+  <!-- Favicon (simple inline SVG) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
+
+  <!-- Theme initialization — runs before paint to prevent flash -->
+  <script is:inline>
+    (function() {
+      const stored = localStorage.getItem('taxbrain_theme');
+      if (stored === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
+</head>
+
+<body>
+  <!-- Accessibility: skip to main content -->
+  <a href="#main-content" class="sr-only">Skip to main content</a>
+
+  <div class="app-layout">
+    <Sidebar />
+
+    <main id="main-content" class="main-content">
+      <slot />
+    </main>
+  </div>
+
+  <!-- Theme toggle script -->
+  <script is:inline>
+    document.addEventListener('DOMContentLoaded', function() {
+      const toggle = document.getElementById('theme-toggle');
+      if (!toggle) return;
+
+      // Set initial icon based on current theme
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const icon = toggle.querySelector('.theme-icon');
+      if (icon) icon.textContent = currentTheme === 'light' ? '🌙' : '☀️';
+
+      function toggleTheme() {
+        const html = document.documentElement;
+        const current = html.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('taxbrain_theme', next);
+
+        // Update toggle icon
+        const themeIcon = toggle.querySelector('.theme-icon');
+        if (themeIcon) themeIcon.textContent = next === 'dark' ? '☀️' : '🌙';
+      }
+
+      toggle.addEventListener('click', toggleTheme);
+
+      // Keyboard shortcut: Ctrl+Shift+T
+      document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+          e.preventDefault();
+          toggleTheme();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

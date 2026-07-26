@@ -1,0 +1,32 @@
+---
+import Layout from '../components/Layout.astro';
+import Simulator from '../components/islands/Simulator';
+---
+
+<Layout title="Scenario Simulator | TaxBrain">
+  <Simulator client:load />
+</Layout>
+
+<style>
+  /* Simulator two-column layout */
+  .simulator-grid {
+    display: grid;
+    gap: var(--space-6);
+  }
+
+  @media (min-width: 1024px) {
+    .simulator-grid {
+      grid-template-columns: 380px 1fr;
+    }
+  }
+
+  .simulator-controls {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .simulator-results {
+    display: flex;
+    flex-direction: column;
+  }
+</style>

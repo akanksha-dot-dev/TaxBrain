@@ -1,0 +1,30 @@
+---
+/**
+ * TaxBrain — Setup / Onboarding Page
+ *
+ * Shown to first-time visitors or when user wants to re-enter their profile.
+ * Hosts the OnboardingWizard React island.
+ */
+
+import Layout from '../components/Layout.astro';
+---
+
+<Layout title="Set Up Your Profile | TaxBrain">
+  <div style="padding-top: var(--space-4);">
+    <div id="wizard-root">
+      <!-- React island for the onboarding wizard -->
+    </div>
+  </div>
+</Layout>
+
+<!-- Load the React island -->
+<script>
+  import { createElement } from 'react';
+  import { createRoot } from 'react-dom/client';
+  import OnboardingWizard from '../components/islands/OnboardingWizard';
+
+  const root = document.getElementById('wizard-root');
+  if (root) {
+    createRoot(root).render(createElement(OnboardingWizard));
+  }
+</script>

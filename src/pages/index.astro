@@ -1,0 +1,15 @@
+---
+import Layout from '../components/Layout.astro';
+import Dashboard from '../components/islands/Dashboard';
+---
+
+<Layout title="Dashboard | TaxBrain">
+  <Dashboard client:load />
+</Layout>
+
+<style>
+  .calculator-grid {
+    display: grid;
+    gap: var(--space-6);
+  }
+</style>

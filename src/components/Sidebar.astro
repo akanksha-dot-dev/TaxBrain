@@ -1,0 +1,267 @@
+---
+/**
+ * TaxBrain — Sidebar Navigation
+ *
+ * Desktop: Left sidebar (260px).
+ * Mobile (<768px): Bottom tab bar (64px).
+ *
+ * 5 navigation items with SVG icons.
+ * Active state highlighted.
+ */
+
+const currentPath = Astro.url.pathname;
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: string;
+}
+
+const navItems: NavItem[] = [
+  {
+    href: '/',
+    label: 'Dashboard',
+    icon: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="7" height="8" rx="1.5"/><rect x="11" y="2" width="7" height="5" rx="1.5"/><rect x="2" y="12" width="7" height="6" rx="1.5"/><rect x="11" y="9" width="7" height="9" rx="1.5"/></svg>',
+  },
+  {
+    href: '/calculator',
+    label: 'Calculator',
+    icon: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="1" width="14" height="18" rx="2"/><line x1="6" y1="5" x2="14" y2="5"/><circle cx="7" cy="9" r="0.5" fill="currentColor"/><circle cx="10" cy="9" r="0.5" fill="currentColor"/><circle cx="13" cy="9" r="0.5" fill="currentColor"/><circle cx="7" cy="12" r="0.5" fill="currentColor"/><circle cx="10" cy="12" r="0.5" fill="currentColor"/><circle cx="13" cy="12" r="0.5" fill="currentColor"/><circle cx="7" cy="15" r="0.5" fill="currentColor"/><circle cx="10" cy="15" r="0.5" fill="currentColor"/><circle cx="13" cy="15" r="0.5" fill="currentColor"/></svg>',
+  },
+  {
+    href: '/simulator',
+    label: 'Simulator',
+    icon: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="4" y2="14"/><circle cx="4" cy="10" r="2" fill="currentColor"/><line x1="10" y1="6" x2="10" y2="14"/><circle cx="10" cy="7" r="2" fill="currentColor"/><line x1="16" y1="6" x2="16" y2="14"/><circle cx="16" cy="13" r="2" fill="currentColor"/></svg>',
+  },
+  {
+    href: '/knowledge',
+    label: 'Knowledge',
+    icon: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a2 2 0 012 2v12a1.5 1.5 0 00-1.5-1.5H2V3z"/><path d="M18 3h-6a2 2 0 00-2 2v12a1.5 1.5 0 011.5-1.5H18V3z"/></svg>',
+  },
+  {
+    href: '/actions',
+    label: 'Actions',
+    icon: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10l3 3 7-7"/><rect x="2" y="2" width="16" height="16" rx="3"/></svg>',
+  },
+  {
+    href: '/setup',
+    label: 'Profile',
+    icon: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="7" r="3"/><path d="M3 18v-1a4 4 0 014-4h6a4 4 0 014 4v1"/></svg>',
+  },
+];
+
+function isActive(href: string): boolean {
+  if (href === '/') return currentPath === '/';
+  return currentPath.startsWith(href);
+}
+---
+
+<!-- Desktop Sidebar -->
+<nav class="sidebar" aria-label="Main navigation">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <span class="sidebar-logo-icon">🧠</span>
+      <span class="sidebar-logo-text">TaxBrain</span>
+    </div>
+    <span class="sidebar-badge">FY 2026-27</span>
+  </div>
+
+  <ul class="sidebar-nav" role="list">
+    {navItems.map((item) => (
+      <li>
+        <a
+          href={item.href}
+          class:list={['sidebar-link', { active: isActive(item.href) }]}
+          aria-current={isActive(item.href) ? 'page' : undefined}
+        >
+          <span class="sidebar-icon" set:html={item.icon} />
+          <span class="sidebar-label">{item.label}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+
+  <div class="sidebar-footer">
+    <button id="theme-toggle" class="btn btn-ghost sidebar-link" type="button" aria-label="Toggle theme">
+      <span class="theme-icon">☀️</span>
+      <span class="sidebar-label">Toggle Theme</span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Bottom Navigation -->
+<nav class="bottom-nav" aria-label="Main navigation (mobile)">
+  {navItems.map((item) => (
+    <a
+      href={item.href}
+      class:list={['bottom-nav-link', { active: isActive(item.href) }]}
+      aria-current={isActive(item.href) ? 'page' : undefined}
+    >
+      <span class="bottom-nav-icon" set:html={item.icon} />
+      <span class="bottom-nav-label">{item.label}</span>
+    </a>
+  ))}
+</nav>
+
+<style>
+  /* ── Desktop Sidebar ── */
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-6) var(--space-4);
+    z-index: 100;
+    overflow-y: auto;
+  }
+
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-3);
+    margin-bottom: var(--space-8);
+  }
+
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .sidebar-logo-icon {
+    font-size: var(--text-2xl);
+  }
+
+  .sidebar-logo-text {
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .sidebar-badge {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--accent-primary);
+    background: rgba(102, 126, 234, 0.1);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+  }
+
+  .sidebar-nav {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    flex: 1;
+  }
+
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: var(--text-base);
+    font-weight: var(--weight-medium);
+    transition: all var(--transition-fast);
+    width: 100%;
+    text-align: left;
+  }
+
+  .sidebar-link:hover {
+    background: var(--hover-overlay);
+    color: var(--text-primary);
+  }
+
+  .sidebar-link.active {
+    background: rgba(102, 126, 234, 0.1);
+    color: var(--accent-primary);
+  }
+
+  .sidebar-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  /* ── Mobile Bottom Nav ── */
+
+  .bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--bottom-nav-height);
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-subtle);
+    justify-content: space-around;
+    align-items: center;
+    z-index: 100;
+    padding: 0 var(--space-2);
+  }
+
+  .bottom-nav-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-2);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: var(--weight-medium);
+    transition: color var(--transition-fast);
+    flex: 1;
+    min-width: 0;
+  }
+
+  .bottom-nav-link.active {
+    color: var(--accent-primary);
+  }
+
+  .bottom-nav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bottom-nav-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ── Responsive ── */
+
+  @media (max-width: 767px) {
+    .sidebar {
+      display: none;
+    }
+
+    .bottom-nav {
+      display: flex;
+    }
+  }
+</style>

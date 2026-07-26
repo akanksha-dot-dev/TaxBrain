@@ -1,0 +1,206 @@
+---
+import Layout from '../../components/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const articles = await getCollection('knowledge');
+
+// Sort by priority (highest first)
+articles.sort((a, b) => (b.data.priority || 0) - (a.data.priority || 0));
+
+// Group by category
+const categoryMeta: Record<string, { label: string; icon: string }> = {
+  'regimes': { label: 'Tax Regimes', icon: '⚖️' },
+  'deductions': { label: 'Deductions & Sections', icon: '📋' },
+  'salary': { label: 'Salary & Benefits', icon: '💼' },
+  'investments': { label: 'Investments', icon: '📈' },
+  'life-events': { label: 'Life Events', icon: '🎯' },
+  'basics': { label: 'Tax Basics', icon: '📚' },
+};
+
+const categories = Object.keys(categoryMeta);
+---
+
+<Layout title="Knowledge Base | TaxBrain">
+  <h1 class="page-title">Knowledge Base</h1>
+  <p class="page-subtitle">
+    Everything you need to know about Indian income tax — plain English, zero jargon
+  </p>
+
+  <!-- Search -->
+  <div class="search-box" style="margin-bottom: var(--space-8);">
+    <input
+      type="search"
+      id="kb-search"
+      class="input"
+      placeholder="Search articles... (e.g., NPS, meal vouchers, 80C)"
+      aria-label="Search knowledge base"
+    />
+  </div>
+
+  <!-- Category filter -->
+  <div class="tabs" style="margin-bottom: var(--space-8); flex-wrap: wrap;">
+    <button class="tab active" data-filter="all">All</button>
+    {categories.map(cat => (
+      <button class="tab" data-filter={cat}>
+        {categoryMeta[cat].icon} {categoryMeta[cat].label}
+      </button>
+    ))}
+  </div>
+
+  <!-- Articles Grid -->
+  <div class="articles-grid" id="articles-grid">
+    {articles.map(article => (
+      <a
+        href={`/knowledge/${article.id}`}
+        class="article-card card"
+        data-category={article.data.category}
+        data-title={article.data.title.toLowerCase()}
+        data-tags={article.data.tags.join(' ').toLowerCase()}
+        data-description={article.data.description.toLowerCase()}
+      >
+        <div class="article-meta">
+          <span class="badge badge-info">
+            {categoryMeta[article.data.category]?.icon} {categoryMeta[article.data.category]?.label}
+          </span>
+          <span class="article-reading-time">{article.data.readingTime} min read</span>
+        </div>
+        <h2 class="article-title">{article.data.title}</h2>
+        <p class="article-description">{article.data.description}</p>
+        <div class="article-tags">
+          {article.data.tags.slice(0, 4).map(tag => (
+            <span class="article-tag">#{tag}</span>
+          ))}
+        </div>
+      </a>
+    ))}
+  </div>
+
+  <!-- Empty state -->
+  <div id="no-results" class="card" style="text-align: center; padding: var(--space-12); display: none;">
+    <p style="font-size: var(--text-2xl); margin-bottom: var(--space-3);">🔍</p>
+    <p style="color: var(--text-secondary);">No articles match your search.</p>
+  </div>
+</Layout>
+
+<style>
+  .articles-grid {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  @media (min-width: 768px) {
+    .articles-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .article-card {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+  }
+
+  .article-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-primary);
+    box-shadow: var(--shadow-glow-purple);
+  }
+
+  .article-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-3);
+  }
+
+  .article-reading-time {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .article-title {
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+    line-height: var(--leading-snug);
+  }
+
+  .article-description {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: var(--leading-relaxed);
+    margin-bottom: var(--space-4);
+    flex: 1;
+  }
+
+  .article-tags {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+
+  .article-tag {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--bg-surface-raised);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+  }
+
+  .search-box .input {
+    font-size: var(--text-md);
+    padding: var(--space-4) var(--space-5);
+  }
+</style>
+
+<script>
+  // Client-side search and filter
+  const searchInput = document.getElementById('kb-search') as HTMLInputElement;
+  const grid = document.getElementById('articles-grid')!;
+  const noResults = document.getElementById('no-results')!;
+  const cards = grid.querySelectorAll('.article-card') as NodeListOf<HTMLElement>;
+  const filterTabs = document.querySelectorAll('.tab[data-filter]') as NodeListOf<HTMLButtonElement>;
+
+  let currentFilter = 'all';
+
+  function filterArticles() {
+    const query = searchInput.value.toLowerCase().trim();
+    let visible = 0;
+
+    cards.forEach(card => {
+      const category = card.dataset.category || '';
+      const title = card.dataset.title || '';
+      const tags = card.dataset.tags || '';
+      const description = card.dataset.description || '';
+
+      const matchesCategory = currentFilter === 'all' || category === currentFilter;
+      const matchesSearch = !query ||
+        title.includes(query) ||
+        tags.includes(query) ||
+        description.includes(query);
+
+      if (matchesCategory && matchesSearch) {
+        card.style.display = '';
+        visible++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    noResults.style.display = visible === 0 ? '' : 'none';
+  }
+
+  searchInput.addEventListener('input', filterArticles);
+
+  filterTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      filterTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentFilter = tab.dataset.filter || 'all';
+      filterArticles();
+    });
+  });
+</script>

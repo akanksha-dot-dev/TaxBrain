@@ -1,0 +1,267 @@
+---
+import Layout from '../../components/Layout.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const articles = await getCollection('knowledge');
+  return articles.map(article => ({
+    params: { slug: article.id },
+    props: { article },
+  }));
+}
+
+const { article } = Astro.props;
+const { Content } = await render(article);
+
+const categoryMeta: Record<string, { label: string; icon: string }> = {
+  'regimes': { label: 'Tax Regimes', icon: '⚖️' },
+  'deductions': { label: 'Deductions & Sections', icon: '📋' },
+  'salary': { label: 'Salary & Benefits', icon: '💼' },
+  'investments': { label: 'Investments', icon: '📈' },
+  'life-events': { label: 'Life Events', icon: '🎯' },
+  'basics': { label: 'Tax Basics', icon: '📚' },
+};
+
+const cat = categoryMeta[article.data.category];
+---
+
+<Layout title={`${article.data.title} | TaxBrain Knowledge Base`}>
+  <div class="article-page">
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/knowledge">← Knowledge Base</a>
+      <span class="breadcrumb-sep">/</span>
+      <span>{cat?.label}</span>
+    </nav>
+
+    <!-- Header -->
+    <header class="article-header">
+      <div class="article-meta-row">
+        <span class="badge badge-info">{cat?.icon} {cat?.label}</span>
+        <span class="reading-time">📖 {article.data.readingTime} min read</span>
+      </div>
+      <h1 class="article-page-title">{article.data.title}</h1>
+      <p class="article-page-description">{article.data.description}</p>
+      <div class="article-tags-row">
+        {article.data.tags.map((tag: string) => (
+          <span class="article-tag">#{tag}</span>
+        ))}
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="prose">
+      <Content />
+    </div>
+
+    <!-- Back link -->
+    <div class="article-footer">
+      <a href="/knowledge" class="btn btn-secondary">← Back to Knowledge Base</a>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .article-page {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-bottom: var(--space-6);
+  }
+
+  .breadcrumb a {
+    color: var(--accent-primary);
+  }
+
+  .breadcrumb-sep {
+    opacity: 0.4;
+  }
+
+  .article-header {
+    margin-bottom: var(--space-8);
+    padding-bottom: var(--space-6);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .article-meta-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
+  .reading-time {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+
+  .article-page-title {
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: var(--leading-snug);
+    margin-bottom: var(--space-3);
+  }
+
+  .article-page-description {
+    font-size: var(--text-md);
+    color: var(--text-secondary);
+    line-height: var(--leading-relaxed);
+    margin-bottom: var(--space-4);
+  }
+
+  .article-tags-row {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+
+  .article-tag {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--bg-surface-raised);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* ── Prose styling for rendered Markdown ── */
+
+  .prose {
+    color: var(--text-secondary);
+    line-height: var(--leading-relaxed);
+    font-size: var(--text-base);
+  }
+
+  .prose h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin-top: var(--space-8);
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .prose h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    margin-top: var(--space-6);
+    margin-bottom: var(--space-3);
+  }
+
+  .prose p {
+    margin-bottom: var(--space-4);
+  }
+
+  .prose ul,
+  .prose ol {
+    padding-left: var(--space-6);
+    margin-bottom: var(--space-4);
+  }
+
+  .prose li {
+    margin-bottom: var(--space-2);
+  }
+
+  .prose strong {
+    color: var(--text-primary);
+    font-weight: var(--weight-semibold);
+  }
+
+  .prose a {
+    color: var(--accent-primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .prose a:hover {
+    color: var(--accent-hover);
+  }
+
+  .prose code {
+    background: var(--bg-surface-raised);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    font-size: 0.9em;
+    font-family: var(--font-mono);
+    color: var(--accent-primary);
+  }
+
+  .prose pre {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    overflow-x: auto;
+    margin-bottom: var(--space-4);
+  }
+
+  .prose pre code {
+    background: none;
+    padding: 0;
+    color: var(--text-primary);
+  }
+
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: var(--space-4);
+    font-size: var(--text-sm);
+  }
+
+  .prose th {
+    text-align: left;
+    padding: var(--space-3);
+    background: var(--bg-surface-raised);
+    border-bottom: 2px solid var(--border-default);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+
+  .prose td {
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .prose blockquote {
+    border-left: 3px solid var(--accent-primary);
+    padding: var(--space-3) var(--space-4);
+    margin: var(--space-4) 0;
+    background: var(--bg-surface-raised);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+
+  .prose blockquote strong {
+    font-style: normal;
+  }
+
+  .prose hr {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: var(--space-8) 0;
+  }
+
+  /* Footer */
+  .article-footer {
+    margin-top: var(--space-10);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    .article-page-title {
+      font-size: var(--text-xl);
+    }
+  }
+</style>

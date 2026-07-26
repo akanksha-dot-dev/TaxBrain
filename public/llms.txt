@@ -1,0 +1,30 @@
+# TaxBrain
+
+> Indian tax intelligence platform for salaried professionals. 100% client-side, zero backend, privacy-first. Built with Astro + React Islands.
+
+## About
+- [Home](https://tax.akanksha.dev/): Dashboard with tax summary and recommendations
+- [Source](https://github.com/): Open-source on GitHub (MIT licensed)
+
+## Features
+- Dual Regime Tax Calculator (New vs Old, FY 2026-27)
+- Salary Structure Optimizer (NPS, meal vouchers, phone reimbursement)
+- Multi-Job Income Combiner (for job switchers)
+- Interactive Scenario Simulator with break-even finder
+- Knowledge Base (15+ articles on Indian tax concepts)
+- Personalized Action Tracker
+
+## Pages
+- [Dashboard](https://tax.akanksha.dev/): At-a-glance tax situation
+- [Calculator](https://tax.akanksha.dev/calculator/): Full interactive tax calculator
+- [Simulator](https://tax.akanksha.dev/simulator/): What-if scenario analysis
+- [Knowledge Base](https://tax.akanksha.dev/knowledge/): Tax concepts explained
+- [Actions](https://tax.akanksha.dev/actions/): Tax-saving action checklist
+
+## Technical
+- Framework: Astro (latest) + React (Islands Architecture)
+- Language: TypeScript (strict)
+- Hosting: Cloudflare Pages (free, unlimited bandwidth)
+- Data: localStorage only (zero backend, zero data sent to servers)
+- Tax Engine: Pure TypeScript functions, framework-agnostic
+- Tax Law: Income Tax Act, 2025 (effective April 1, 2026)

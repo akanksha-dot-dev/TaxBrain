@@ -1,0 +1,43 @@
+---
+import Layout from '../components/Layout.astro';
+import Calculator from '../components/islands/Calculator';
+---
+
+<Layout title="Tax Calculator | TaxBrain">
+  <Calculator client:load />
+</Layout>
+
+<style>
+  /* Calculator-specific layout */
+  .calculator-grid {
+    display: grid;
+    gap: var(--space-6);
+  }
+
+  @media (min-width: 1024px) {
+    .calculator-grid {
+      grid-template-columns: 380px 1fr;
+    }
+  }
+
+  .calculator-inputs {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .calculator-results {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .input-row {
+    display: flex;
+    gap: var(--space-3);
+  }
+
+  @media (max-width: 767px) {
+    .input-row {
+      flex-direction: column;
+    }
+  }
+</style>
