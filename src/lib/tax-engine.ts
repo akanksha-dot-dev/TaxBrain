@@ -48,7 +48,7 @@ export function calculateSlabTax(
 
     const slabWidth = slab.max === Infinity
       ? remaining
-      : Math.max(0, slab.max - slab.min + 1);
+      : Math.max(0, slab.max - (slab.min > 0 ? slab.min - 1 : 0));
 
     const taxableInSlab = Math.min(remaining, slabWidth);
     const taxOnSlab = Math.round(taxableInSlab * slab.rate);
@@ -289,8 +289,8 @@ export function calculateNewRegimeTax(
   // Check aggregate employer contribution cap (Sec 17(2)(vii) - ₹7,50,000)
   let totalEmployerContrib = 0;
   for (const job of profile.jobs) {
-    const months = job.endMonth - job.startMonth + 1;
-    const epf = Math.round(job.employerPF * (months / 12));
+    const months = Math.max(0, job.endMonth - job.startMonth + 1);
+    const epf = Math.round((job.employerPF ?? 0) * (months / 12));
     const nps = profile.optimizations.employerNPS ? calculateEmployerNPS(job, 'new', config) : 0;
     totalEmployerContrib += (epf + nps);
   }
@@ -320,7 +320,7 @@ export function calculateNewRegimeTax(
   if (profile.optimizations.mealVouchers) {
     for (const job of profile.jobs) {
       if (job.isCurrentJob || profile.jobs.length === 1) {
-        const months = job.endMonth - job.startMonth + 1;
+        const months = Math.max(0, job.endMonth - job.startMonth + 1);
         const mealExemption = calculateMealVoucherExemption(
           months,
           config.mealVoucherPerMealLimit
@@ -342,7 +342,7 @@ export function calculateNewRegimeTax(
   if (profile.optimizations.phoneReimbursement && profile.optimizations.monthlyPhoneAmount > 0) {
     for (const job of profile.jobs) {
       if (job.isCurrentJob || profile.jobs.length === 1) {
-        const months = job.endMonth - job.startMonth + 1;
+        const months = Math.max(0, job.endMonth - job.startMonth + 1);
         const phoneExemption = profile.optimizations.monthlyPhoneAmount * months;
         exemptions.push({
           name: 'Telephone/Internet Reimbursement',
@@ -392,7 +392,7 @@ export function calculateNewRegimeTax(
   const taxAfterRebate = Math.max(0, taxFromSlabs - rebate - marginalRelief);
 
   // Step 10: Surcharge
-  const surcharge = calculateSurcharge(taxAfterRebate, netTaxableIncome, regime.surchargeSlabs);
+  const surcharge = calculateSurcharge(taxAfterRebate, netTaxableIncome, regime.surchargeSlabs, regime.slabs);
 
   // Step 11: Cess
   const cess = calculateCess(taxAfterRebate + surcharge, regime.cessRate);
@@ -832,6 +832,13 @@ export function findBreakeven(
     } else {
       high = mid;
     }
+  }
+
+  // Verify if Old Regime actually wins at low
+  const finalTest = applyParameterChange(profile, parameter, low);
+  const finalComparison = compareRegimes(finalTest, config);
+  if (finalComparison.winner === 'new') {
+    return 0; // Old regime cannot win within search range
   }
 
   return low;

@@ -7,24 +7,15 @@
  */
 
 import Layout from '../components/Layout.astro';
+import OnboardingWizard from '../components/islands/OnboardingWizard';
 ---
 
 <Layout title="Set Up Your Profile | TaxBrain">
-  <div style="padding-top: var(--space-4);">
-    <div id="wizard-root">
-      <!-- React island for the onboarding wizard -->
+  <noscript>
+    <div class="card" style="margin-bottom: var(--space-6); padding: var(--space-6);">
+      <h2>JavaScript Required</h2>
+      <p>Please enable JavaScript to use the interactive onboarding wizard.</p>
     </div>
-  </div>
+  </noscript>
+  <OnboardingWizard client:load />
 </Layout>
-
-<!-- Load the React island -->
-<script>
-  import { createElement } from 'react';
-  import { createRoot } from 'react-dom/client';
-  import OnboardingWizard from '../components/islands/OnboardingWizard';
-
-  const root = document.getElementById('wizard-root');
-  if (root) {
-    createRoot(root).render(createElement(OnboardingWizard));
-  }
-</script>

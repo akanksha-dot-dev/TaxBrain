@@ -51,16 +51,16 @@ export default function Simulator() {
       const ratio = salaryMultiplier / 100;
       for (const job of p.jobs) {
         const c = job.components;
-        c.basic = Math.round(c.basic * ratio);
-        c.hra = Math.round(c.hra * ratio);
-        c.lta = Math.round(c.lta * ratio);
-        c.specialAllowance = Math.round(c.specialAllowance * ratio);
-        c.fuelMaintenance = Math.round(c.fuelMaintenance * ratio);
-        c.flexiBasket = Math.round(c.flexiBasket * ratio);
-        c.managementAllowance = Math.round(c.managementAllowance * ratio);
-        c.otherAllowances = Math.round(c.otherAllowances * ratio);
-        job.variablePay = Math.round(job.variablePay * ratio);
-        job.employerPF = Math.round(job.employerPF * ratio);
+        c.basic = Math.round((c.basic ?? 0) * ratio);
+        c.hra = Math.round((c.hra ?? 0) * ratio);
+        c.lta = Math.round((c.lta ?? 0) * ratio);
+        c.specialAllowance = Math.round((c.specialAllowance ?? 0) * ratio);
+        c.fuelMaintenance = Math.round((c.fuelMaintenance ?? 0) * ratio);
+        c.flexiBasket = Math.round((c.flexiBasket ?? 0) * ratio);
+        c.managementAllowance = Math.round((c.managementAllowance ?? 0) * ratio);
+        c.otherAllowances = Math.round((c.otherAllowances ?? 0) * ratio);
+        job.variablePay = Math.round((job.variablePay ?? 0) * ratio);
+        job.employerPF = Math.round((job.employerPF ?? 0) * ratio);
       }
     }
 

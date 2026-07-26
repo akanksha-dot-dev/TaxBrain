@@ -104,8 +104,8 @@ export default function OnboardingWizard() {
       startMonth: number, endMonth: number, isCurrent: boolean,
     ): JobProfile => {
       const annualBasic = Math.round(ctc * (basicPercent / 100));
-      const annualHRA = Math.round(annualBasic * 0.5);
-      const annualPF = Math.round(annualBasic * 0.12);
+      const annualHRA = isEditing && existingComp?.hra ? existingComp.hra : Math.round(annualBasic * (isMetro ? 0.5 : 0.4));
+      const annualPF = isEditing && existingJob?.employerPF ? existingJob.employerPF : Math.round(annualBasic * 0.12);
       const preservedLTA = isEditing ? (existingComp?.lta ?? 0) : 0;
       const preservedFuel = isEditing ? (existingComp?.fuelMaintenance ?? 0) : 0;
       const preservedFlexi = isEditing ? (existingComp?.flexiBasket ?? 0) : 0;
