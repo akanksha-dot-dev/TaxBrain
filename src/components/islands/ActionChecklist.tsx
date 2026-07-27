@@ -7,9 +7,10 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { loadActionState, toggleAction, loadProfile } from '../../lib/profile-store';
+import { loadActionState, toggleAction, loadProfile, saveProfile } from '../../lib/profile-store';
 import { generateActions } from '../../lib/action-generator';
 import { TAX_CONFIG_FY2026 } from '../../lib/tax-rules';
+import { SAMPLE_PROFILES } from '../../data/default-profile';
 import type { ActionItem, UserProfile } from '../../lib/types';
 
 const CATEGORY_META: Record<string, { label: string; icon: string; color: string }> = {
@@ -54,15 +55,40 @@ export default function ActionChecklist() {
     setCompletedState({ ...newState });
   };
 
+  const handleSelectSample = (sample: UserProfile) => {
+    saveProfile(sample);
+    setProfile(sample);
+  };
+
   if (!profile || profile.jobs.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: 'var(--space-10) var(--space-4)' }}>
-        <div style={{ fontSize: '3rem', marginBottom: 'var(--space-4)' }}>✅</div>
+      <div style={{ textAlign: 'center', padding: 'var(--space-8) var(--space-4)', maxWidth: '640px', margin: '0 auto' }}>
+        <div style={{ fontSize: '3rem', marginBottom: 'var(--space-3)' }}>✅</div>
         <h1 className="page-title">Action Checklist</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)', maxWidth: '400px', margin: '0 auto var(--space-6)' }}>
-          Set up your profile to get a personalized checklist of tax optimization actions.
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)', lineHeight: 'var(--leading-relaxed)' }}>
+          Set up your profile to get a personalized checklist of tax optimization actions, or pick a demo profile below.
         </p>
-        <a href="/setup" className="btn btn-primary">Set Up Profile →</a>
+        <a href="/setup" className="btn btn-primary btn-lg" style={{ marginBottom: 'var(--space-8)' }}>Set Up Profile →</a>
+
+        <div className="divider" style={{ marginBottom: 'var(--space-6)' }} />
+
+        <h3 style={{ fontSize: 'var(--text-md)', color: 'var(--text-primary)', marginBottom: 'var(--space-4)' }}>
+          Or try a quick demo profile:
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 'var(--space-3)' }}>
+          {SAMPLE_PROFILES.map(sp => (
+            <button key={sp.id} className="card" onClick={() => handleSelectSample(sp.profile)}
+              style={{
+                cursor: 'pointer', textAlign: 'center', padding: 'var(--space-4)',
+                border: '1px solid var(--border-subtle)', background: 'var(--bg-surface-raised)',
+                transition: 'transform 0.15s ease, border-color 0.15s ease',
+              }}>
+              <div style={{ fontSize: '1.5rem', marginBottom: 'var(--space-2)' }}>{sp.emoji}</div>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>{sp.label}</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>{sp.ctc} CTC</div>
+            </button>
+          ))}
+        </div>
       </div>
     );
   }

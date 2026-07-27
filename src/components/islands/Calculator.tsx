@@ -16,6 +16,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { compareRegimes } from '../../lib/tax-engine';
 import { TAX_CONFIG_FY2026 } from '../../lib/tax-rules';
 import { loadProfile, saveProfile } from '../../lib/profile-store';
+import { SAMPLE_PROFILES } from '../../data/default-profile';
 import {
   formatCurrency,
   formatPercent,
@@ -62,15 +63,40 @@ export default function Calculator() {
     );
   }
 
+  const handleLoadSample = (sample: UserProfile) => {
+    saveProfile(sample);
+    setProfile(sample);
+  };
+
   if (!profile || profile.jobs.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: 'var(--space-10) var(--space-4)' }}>
-        <div style={{ fontSize: '3rem', marginBottom: 'var(--space-4)' }}>🧮</div>
+      <div style={{ textAlign: 'center', padding: 'var(--space-8) var(--space-4)', maxWidth: '640px', margin: '0 auto' }}>
+        <div style={{ fontSize: '3rem', marginBottom: 'var(--space-3)' }}>🧮</div>
         <h1 className="page-title">Tax Calculator</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)', maxWidth: '400px', margin: '0 auto var(--space-6)' }}>
-          Set up your salary profile to see a full dual-regime tax breakdown with slab-by-slab details.
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)', lineHeight: 'var(--leading-relaxed)' }}>
+          Set up your custom salary profile or pick a sample profile below to explore interactive dual-regime tax calculations immediately.
         </p>
-        <a href="/setup" className="btn btn-primary">Set Up Profile →</a>
+        <a href="/setup" className="btn btn-primary btn-lg" style={{ marginBottom: 'var(--space-8)' }}>Set Up My Profile →</a>
+
+        <div className="divider" style={{ marginBottom: 'var(--space-6)' }} />
+
+        <h3 style={{ fontSize: 'var(--text-md)', color: 'var(--text-primary)', marginBottom: 'var(--space-4)' }}>
+          Or try a quick demo profile:
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 'var(--space-3)' }}>
+          {SAMPLE_PROFILES.map(sp => (
+            <button key={sp.id} className="card" onClick={() => handleLoadSample(sp.profile)}
+              style={{
+                cursor: 'pointer', textAlign: 'center', padding: 'var(--space-4)',
+                border: '1px solid var(--border-subtle)', background: 'var(--bg-surface-raised)',
+                transition: 'transform 0.15s ease, border-color 0.15s ease',
+              }}>
+              <div style={{ fontSize: '1.5rem', marginBottom: 'var(--space-2)' }}>{sp.emoji}</div>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>{sp.label}</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>{sp.ctc} CTC</div>
+            </button>
+          ))}
+        </div>
       </div>
     );
   }
@@ -81,10 +107,24 @@ export default function Calculator() {
 
   return (
     <div className="calculator">
-      <h1 className="page-title">Tax Calculator</h1>
-      <p className="page-subtitle">
-        Compare New vs Old regime with your actual salary structure
-      </p>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: 'var(--space-3)', marginBottom: 'var(--space-4)'
+      }}>
+        <div>
+          <h1 className="page-title" style={{ margin: 0 }}>Tax Calculator</h1>
+          <p className="page-subtitle" style={{ margin: 0 }}>
+            Compare New vs Old regime with your actual salary structure
+          </p>
+        </div>
+        <button
+          className="btn btn-secondary btn-sm no-print"
+          onClick={() => window.print()}
+          title="Print or Save PDF"
+        >
+          🖨️ Save PDF
+        </button>
+      </div>
 
       <div className="calculator-grid">
         {/* ── LEFT: Input Panel ── */}

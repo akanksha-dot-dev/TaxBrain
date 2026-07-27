@@ -844,3 +844,43 @@ html {
 .pulse {
   animation: pulse 2s ease-in-out infinite;
 }
+
+/* ============================================================
+   PRINT / PDF EXPORT STYLES
+   ============================================================ */
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .sidebar,
+  .bottom-nav,
+  .btn,
+  .tabs,
+  .no-print,
+  a.btn {
+    display: none !important;
+  }
+  .layout-container {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .main-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+  .card, .card-glass {
+    border: 1px solid #ddd !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+  h1, h2, h3, p, span, td, th {
+    color: #000000 !important;
+  }
+}
+

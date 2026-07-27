@@ -69,10 +69,27 @@ export default function Dashboard() {
       opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(12px)',
       transition: 'opacity 0.5s ease, transform 0.5s ease',
     }}>
-      <h1 className="page-title" style={{ fontSize: 'var(--text-2xl)' }}>
-        {getGreeting()}, {profile.name} 👋
-      </h1>
-      <p className="page-subtitle">Tax Year 2026-27 • Your personalized tax intelligence</p>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: 'var(--space-3)', marginBottom: 'var(--space-6)',
+      }}>
+        <div>
+          <h1 className="page-title" style={{ fontSize: 'var(--text-2xl)', margin: 0 }}>
+            {getGreeting()}, {profile.name} 👋
+          </h1>
+          <p className="page-subtitle" style={{ margin: 0 }}>Tax Year 2026-27 • Your personalized tax intelligence</p>
+        </div>
+        <div style={{ display: 'flex', gap: 'var(--space-2)' }} className="no-print">
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => window.print()}
+            title="Print or Save as PDF"
+          >
+            🖨️ Save PDF
+          </button>
+          <a href="/setup" className="btn btn-secondary btn-sm">✏️ Edit Profile</a>
+        </div>
+      </div>
 
       {/* Hero Savings Card */}
       <div style={{

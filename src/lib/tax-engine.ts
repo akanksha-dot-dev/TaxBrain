@@ -939,6 +939,56 @@ export function getOptimizationSuggestions(
     }
   }
 
+  // Check 80CCD(1B) Self NPS (Old regime extra deduction)
+  const currentNPS1B = profile.deductions.section80CCD1B ?? 0;
+  if (currentNPS1B < 50000) {
+    const withNPS1B = structuredClone(profile);
+    withNPS1B.deductions.section80CCD1B = 50000;
+    const withNPS1BComp = compareRegimes(withNPS1B, config);
+
+    const currentBestTax = Math.min(comparison.newRegime.totalTax, comparison.oldRegime.totalTax);
+    const withNPS1BBestTax = Math.min(withNPS1BComp.newRegime.totalTax, withNPS1BComp.oldRegime.totalTax);
+    const saving = currentBestTax - withNPS1BBestTax;
+
+    if (saving > 0) {
+      suggestions.push({
+        id: 'self-nps-80ccd1b',
+        title: 'Invest in NPS Tier-1 (Sec 80CCD 1B)',
+        description: `Invest up to ₹50,000 in Tier-1 NPS for an extra tax deduction above the ₹1.5L 80C limit in Old Regime.`,
+        potentialSaving: saving,
+        regime: 'old',
+        actionRequired: 'Open NPS Tier-1 account via netbanking/eNPS',
+        priority: 'medium',
+      });
+    }
+  }
+
+  // Check Section 80D Parents Health Insurance
+  const currentParentsPremium = profile.deductions.section80D?.parentsPremium ?? 0;
+  if (currentParentsPremium === 0) {
+    const withParents80D = structuredClone(profile);
+    withParents80D.deductions.section80D = {
+      ...withParents80D.deductions.section80D,
+      parentsPremium: 25000,
+    };
+    const withParentsComp = compareRegimes(withParents80D, config);
+    const currentBestTax = Math.min(comparison.newRegime.totalTax, comparison.oldRegime.totalTax);
+    const withParentsBestTax = Math.min(withParentsComp.newRegime.totalTax, withParentsComp.oldRegime.totalTax);
+    const saving = currentBestTax - withParentsBestTax;
+
+    if (saving > 0) {
+      suggestions.push({
+        id: 'parents-health-insurance',
+        title: 'Buy Health Insurance for Parents (Sec 80D)',
+        description: `Claim up to ₹25,000 (or ₹50,000 if senior citizens) deduction by paying parents' health insurance premium.`,
+        potentialSaving: saving,
+        regime: 'old',
+        actionRequired: 'Pay health insurance policy premium for parents',
+        priority: 'medium',
+      });
+    }
+  }
+
   return suggestions;
 }
 

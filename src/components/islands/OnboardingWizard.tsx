@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { loadProfile, saveProfile, clearProfile } from '../../lib/profile-store';
+import { loadProfile, saveProfile, clearProfile, exportProfile, importProfile } from '../../lib/profile-store';
 import { EMPTY_PROFILE, SAMPLE_PROFILES } from '../../data/default-profile';
 import { formatCurrency } from '../../lib/formatters';
 import { isMetroCity } from '../../lib/tax-rules';
@@ -24,6 +24,10 @@ export default function OnboardingWizard() {
   const [step, setStep] = useState(1);
   const [isEditing, setIsEditing] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importJsonText, setImportJsonText] = useState('');
+  const [importError, setImportError] = useState('');
+  const [validationError, setValidationError] = useState('');
 
   // Step 1: Basics
   const [name, setName] = useState('');
@@ -198,25 +202,155 @@ export default function OnboardingWizard() {
     setWantNPS(false); setWantMeals(false); setHasHealthInsurance(false);
     setHealthPremium(15000); setHomeLoanInterest(0);
     setIsEditing(false); setShowResetConfirm(false); setStep(1);
+    setValidationError('');
+  }
+
+  function handleExportJSON() {
+    const jsonStr = exportProfile();
+    if (!jsonStr) return;
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `taxbrain-profile-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleImportSubmit() {
+    setImportError('');
+    if (!importJsonText.trim()) {
+      setImportError('Please paste a valid TaxBrain JSON profile.');
+      return;
+    }
+    const imported = importProfile(importJsonText);
+    if (!imported) {
+      setImportError('Invalid JSON or incompatible profile structure.');
+      return;
+    }
+    setShowImportModal(false);
+    window.location.href = '/';
+  }
+
+  function goToStep2() {
+    if (validateStep1()) {
+      setStep(2);
+    }
+  }
+
+  function goToStep3() {
+    if (validateStep2()) {
+      setStep(3);
+    }
+  }
+
+  function validateStep1(): boolean {
+    setValidationError('');
+    if (age < 18 || age > 100) {
+      setValidationError('Please enter a valid age between 18 and 100.');
+      return false;
+    }
+    if (monthlyRent < 0) {
+      setValidationError('Monthly rent cannot be negative.');
+      return false;
+    }
+    return true;
+  }
+
+  function validateStep2(): boolean {
+    setValidationError('');
+    if (annualCTC <= 0) {
+      setValidationError('Please enter an annual CTC greater than ₹0.');
+      return false;
+    }
+    if (basicPercent < 30 || basicPercent > 70) {
+      setValidationError('Basic salary percentage should be between 30% and 70%.');
+      return false;
+    }
+    if (hasJobSwitch && newCTC <= 0) {
+      setValidationError('Please enter a valid CTC for your new job.');
+      return false;
+    }
+    return true;
   }
 
   return (
     <div style={{ maxWidth: '640px', margin: '0 auto' }}>
-      {/* Header — Edit mode indicator */}
-      {isEditing && step === 1 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-4)',
-          background: 'var(--bg-surface-raised)', borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)',
-        }}>
-          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-            ✏️ Editing existing profile
-          </span>
-          <button className="btn btn-ghost btn-sm" onClick={() => setShowResetConfirm(true)}
-            style={{ color: 'var(--color-danger)', fontSize: 'var(--text-xs)' }}>
-            🗑️ Reset &amp; Start Over
+      {/* Header — Edit mode & Backup Actions */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-4)',
+        background: 'var(--bg-surface-raised)', borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--border-subtle)', flexWrap: 'wrap', gap: 'var(--space-2)'
+      }}>
+        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+          {isEditing ? '✏️ Editing existing profile' : '⚙️ Profile Tools'}
+        </span>
+        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          {isEditing && (
+            <button className="btn btn-ghost btn-sm" onClick={handleExportJSON} title="Download profile as JSON">
+              📥 Export JSON
+            </button>
+          )}
+          <button className="btn btn-ghost btn-sm" onClick={() => { setImportError(''); setShowImportModal(true); }}>
+            📤 Import JSON
           </button>
+          {isEditing && (
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowResetConfirm(true)}
+              style={{ color: 'var(--color-danger)' }}>
+              🗑️ Reset
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: 'var(--space-4)',
+        }}>
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
+            padding: 'var(--space-6)', maxWidth: '500px', width: '100%',
+            border: '1px solid var(--border-subtle)',
+          }}>
+            <h3 style={{ color: 'var(--text-primary)', marginBottom: 'var(--space-2)' }}>
+              Import Profile JSON
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-xs)', marginBottom: 'var(--space-4)' }}>
+              Paste your saved TaxBrain JSON profile below:
+            </p>
+            <textarea
+              className="input"
+              rows={6}
+              style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}
+              value={importJsonText}
+              onChange={e => setImportJsonText(e.target.value)}
+              placeholder='{"name": "...", "jobs": [...]}'
+            />
+            {importError && (
+              <div style={{ color: 'var(--color-danger)', fontSize: 'var(--text-xs)', marginTop: 'var(--space-2)' }}>
+                ⚠️ {importError}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-4)' }}>
+              <button className="btn btn-ghost" onClick={() => setShowImportModal(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleImportSubmit}>Load Profile</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Validation Error Banner */}
+      {validationError && (
+        <div style={{
+          padding: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-4)',
+          background: 'var(--color-danger-bg)', borderRadius: 'var(--radius-md)',
+          color: 'var(--color-danger)', fontSize: 'var(--text-sm)', fontWeight: 500
+        }}>
+          ⚠️ {validationError}
         </div>
       )}
 
@@ -320,7 +454,7 @@ export default function OnboardingWizard() {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-8)' }}>
             <a href="/" className="btn btn-ghost">← Dashboard</a>
-            <button className="btn btn-primary" onClick={() => setStep(2)}>
+            <button className="btn btn-primary" onClick={goToStep2}>
               Next: Salary →
             </button>
           </div>
@@ -413,7 +547,7 @@ export default function OnboardingWizard() {
             <button className="btn btn-ghost" onClick={() => setStep(1)}>← Back</button>
             <button className="btn btn-primary"
               disabled={annualCTC <= 0}
-              onClick={() => setStep(3)}>
+              onClick={goToStep3}>
               Next: Optimizations →
             </button>
           </div>
