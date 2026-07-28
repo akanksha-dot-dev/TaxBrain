@@ -102,6 +102,31 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           toggleTheme();
         }
       });
+
+      // Sidebar profile peek
+      try {
+        const raw = localStorage.getItem('taxbrain_profile');
+        if (raw) {
+          const p = JSON.parse(raw);
+          const peek = document.getElementById('sidebar-profile-peek');
+          const nameEl = document.getElementById('sidebar-name');
+          const regimeEl = document.getElementById('sidebar-regime');
+          const avatarEl = document.getElementById('sidebar-avatar');
+          if (peek && nameEl && p.name) {
+            nameEl.textContent = p.name;
+            if (avatarEl) {
+              // Pick an emoji avatar based on age/gender
+              const age = p.age || 25;
+              avatarEl.textContent = age < 28 ? '🎓' : age < 40 ? '💼' : '🏆';
+            }
+            if (regimeEl) {
+              // Regime hint is not stored directly, so show a neutral label
+              regimeEl.textContent = 'FY 2026-27 profile';
+            }
+            peek.style.display = 'flex';
+          }
+        }
+      } catch(e) { /* ignore */ }
     });
   </script>
 </body>
