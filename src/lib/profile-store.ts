@@ -151,7 +151,9 @@ export function loadActionState(): Record<string, boolean> {
   try {
     const raw = localStorage.getItem(ACTIONS_KEY);
     if (!raw) return {};
-    return JSON.parse(raw) as Record<string, boolean>;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {};
+    return parsed as Record<string, boolean>;
   } catch {
     return {};
   }
