@@ -289,7 +289,7 @@ export default function Dashboard() {
         <StatCard icon="📊" label="Effective Rate" value={formatPercent(bestResult.effectiveTaxRate)} accent="default" started={visible} />
         <StatCard icon="💰" label="Monthly Take-Home" value={formatCurrency(bestResult.monthlyTakeHome)} accent="success" started={visible} />
         <StatCard icon="📅" label="Monthly TDS" value={formatCurrency(bestResult.monthlyTDS)} accent="default" started={visible} />
-        <StatCard icon="🎯" label="Optimization" value={`${optimizationScore}%`} accent={optimizationScore >= 80 ? 'success' : 'warning'} started={visible} />
+        <ScoreRingCard score={optimizationScore} started={visible} />
       </div>
 
       {/* Suggestions + Tax Calendar — two column on large screens */}
@@ -346,6 +346,17 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Tax Health + FY Countdown row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
+        <TaxHealthScore
+          profile={profile}
+          comparison={comparison!}
+          suggestions={suggestions}
+          started={visible}
+        />
+        <FYCountdown />
       </div>
 
       {/* Quick Navigation */}
@@ -427,38 +438,64 @@ function WelcomeScreen({ visible, onSelectSample }: { visible: boolean; onSelect
       transition: 'opacity 0.6s ease, transform 0.6s ease',
     }}>
       {/* Hero */}
-      <div style={{ textAlign: 'center', padding: 'var(--space-10) var(--space-4) var(--space-8)' }}>
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
-          background: 'rgba(102,126,234,0.12)', border: '1px solid rgba(102,126,234,0.25)',
-          borderRadius: 'var(--radius-full)', padding: '6px 16px',
-          fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--accent-primary)',
-          letterSpacing: '0.06em', textTransform: 'uppercase',
-          marginBottom: 'var(--space-5)',
-        }}>
-          🇮🇳 FY 2026-27 · Income Tax Act 2025
+      <div className="welcome-hero-section" style={{ textAlign: 'center', padding: 'var(--space-10) var(--space-4) var(--space-8)' }}>
+        {/* Animated particles */}
+        <div className="hero-particles-container" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+          {[...Array(12)].map((_, i) => (
+            <div
+              key={i}
+              className="hero-particle"
+              style={{
+                width: `${6 + (i % 4) * 4}px`,
+                height: `${6 + (i % 4) * 4}px`,
+                left: `${8 + (i * 8) % 84}%`,
+                bottom: `${(i * 13) % 40}%`,
+                background: i % 3 === 0
+                  ? 'rgba(102,126,234,0.4)'
+                  : i % 3 === 1
+                  ? 'rgba(118,75,162,0.35)'
+                  : 'rgba(0,230,118,0.3)',
+                animationDuration: `${4 + (i % 5) * 1.2}s`,
+                animationDelay: `${(i * 0.6) % 4}s`,
+              }}
+            />
+          ))}
         </div>
 
-        <h1 style={{
-          fontSize: 'clamp(1.9rem, 5vw, 3rem)', fontWeight: 800,
-          lineHeight: 1.1, marginBottom: 'var(--space-4)',
-          background: 'linear-gradient(135deg, var(--text-primary) 30%, var(--accent-primary) 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-        }}>
-          Your Free Tax Intelligence<br />Platform
-        </h1>
-        <p style={{ fontSize: 'var(--text-md)', color: 'var(--text-secondary)', maxWidth: '500px', margin: '0 auto var(--space-6)', lineHeight: 'var(--leading-relaxed)' }}>
-          Compare New vs Old regime, optimize salary structure, and plan tax-saving strategies. Built for Indian salaried professionals.
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-3)' }}>
-          <a href="/setup" className="btn btn-primary btn-lg">
-            🚀 Set Up My Profile
-          </a>
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
-            🔒 100% private — all data stays in your browser. No accounts needed.
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div className="welcome-badge-pill">
+            🇮🇳 FY 2026-27 · Income Tax Act 2025
+          </div>
+
+          <h1 style={{
+            fontSize: 'clamp(1.9rem, 5vw, 3rem)', fontWeight: 800,
+            lineHeight: 1.1, marginBottom: 'var(--space-4)',
+            background: 'linear-gradient(135deg, var(--text-primary) 30%, var(--accent-primary) 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}>
+            Your Free Tax Intelligence<br />Platform
+          </h1>
+          <p style={{ fontSize: 'var(--text-md)', color: 'var(--text-secondary)', maxWidth: '500px', margin: '0 auto var(--space-6)', lineHeight: 'var(--leading-relaxed)' }}>
+            Compare New vs Old regime, optimize salary structure, and plan tax-saving strategies. Built for Indian salaried professionals.
           </p>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-3)' }}>
+            <a href="/setup" className="btn btn-primary btn-lg cta-button-shimmer">
+              🚀 Set Up My Profile
+            </a>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
+              🔒 100% private — all data stays in your browser. No accounts needed.
+            </p>
+          </div>
+
+          {/* Stats ticker */}
+          <div className="stats-ticker" style={{ maxWidth: '480px', margin: '0 auto' }}>
+            <div className="stats-ticker-item">✨ <span className="stats-ticker-value">100% Free</span> forever</div>
+            <div className="stats-ticker-item">🔐 <span className="stats-ticker-value">Zero</span> data sent</div>
+            <div className="stats-ticker-item">⚡ <span className="stats-ticker-value">Live</span> calculations</div>
+            <div className="stats-ticker-item">🇮🇳 <span className="stats-ticker-value">ITA 2025</span> updated</div>
+          </div>
         </div>
       </div>
 
@@ -607,6 +644,195 @@ function DetailRow({ label, value, bold }: { label: string; value: string; bold?
     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', fontWeight: bold ? 600 : 400 }}>
       <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
       <span style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{value}</span>
+    </div>
+  );
+}
+
+// ── Optimization Score Ring ──
+
+function ScoreRingCard({ score, started }: { score: number; started: boolean }) {
+  const radius = 36;
+  const circumference = 2 * Math.PI * radius;
+  const [animScore, setAnimScore] = useState(0);
+
+  useEffect(() => {
+    if (!started) return;
+    const t = setTimeout(() => setAnimScore(score), 200);
+    return () => clearTimeout(t);
+  }, [score, started]);
+
+  const offset = circumference - (animScore / 100) * circumference;
+  const color = score >= 80 ? 'var(--color-success)' : score >= 50 ? 'var(--color-warning)' : 'var(--color-danger)';
+
+  return (
+    <div className="card" style={{ textAlign: 'center', padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ position: 'relative', width: '96px', height: '96px' }}>
+        <svg width="96" height="96" viewBox="0 0 96 96" className="score-ring-svg" style={{ position: 'absolute', top: 0, left: 0 }}>
+          <circle className="score-ring-track" cx="48" cy="48" r={radius} />
+          <circle
+            className="score-ring-fill"
+            cx="48" cy="48" r={radius}
+            stroke={color}
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(0.22, 1, 0.36, 1)' }}
+          />
+        </svg>
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+          <span style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>
+            {animScore}%
+          </span>
+        </div>
+      </div>
+      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>Optimization</div>
+    </div>
+  );
+}
+
+// ── Tax Health Score ──
+
+function TaxHealthScore({ profile, comparison, suggestions, started }: {
+  profile: UserProfile;
+  comparison: RegimeComparison;
+  suggestions: Suggestion[];
+  started: boolean;
+}) {
+  const [animated, setAnimated] = useState(false);
+  useEffect(() => {
+    if (started) {
+      const t = setTimeout(() => setAnimated(true), 300);
+      return () => clearTimeout(t);
+    }
+  }, [started]);
+
+  // Pillar 1: Regime Choice (25 pts) — are they using the recommended regime?
+  const regimeScore = 25; // always correct since we always show best
+
+  // Pillar 2: Exemption Efficiency (25 pts) — HRA claimed, LTA claimed
+  const bestResult = comparison.winner === 'new' ? comparison.newRegime : comparison.oldRegime;
+  const hraExemption = bestResult.exemptions.find(e => e.name.includes('HRA'))?.amount ?? 0;
+  const hasHRA = profile.monthlyRent > 0 && hraExemption > 0;
+  const exemptionScore = Math.min(25, Math.round(
+    (hraExemption > 0 ? 15 : 0) + (profile.optimizations.ltaClaimed ? 10 : 0)
+  ));
+
+  // Pillar 3: Deduction Usage (25 pts) — 80C, 80D
+  const total80C = Object.values(profile.deductions.section80C).reduce((a, b) => a + b, 0);
+  const has80D = (profile.deductions.section80D.selfPremium ?? 0) > 0;
+  const deductionScore = Math.min(25, Math.round(
+    (Math.min(total80C, 150000) / 150000) * 15 + (has80D ? 10 : 0)
+  ));
+
+  // Pillar 4: Optimization (25 pts) — NPS, meals, phone
+  const optCount = [profile.optimizations.employerNPS, profile.optimizations.mealVouchers, profile.optimizations.phoneReimbursement].filter(Boolean).length;
+  const optScore = Math.round((optCount / 3) * 25);
+
+  const totalScore = regimeScore + exemptionScore + deductionScore + optScore;
+  const grade = totalScore >= 90 ? '🏆 Excellent' : totalScore >= 70 ? '✅ Good' : totalScore >= 50 ? '⚡ Fair' : '⚠️ Needs Work';
+  const gradeColor = totalScore >= 90 ? 'var(--color-success)' : totalScore >= 70 ? 'var(--blue-500)' : totalScore >= 50 ? 'var(--color-warning)' : 'var(--color-danger)';
+  const gradeBg = totalScore >= 90 ? 'var(--color-success-bg)' : totalScore >= 70 ? 'rgba(64,196,255,0.1)' : totalScore >= 50 ? 'rgba(255,215,64,0.1)' : 'var(--color-danger-bg)';
+
+  const pillars = [
+    { icon: '⚖️', label: 'Regime Choice', score: regimeScore, max: 25 },
+    { icon: '🏠', label: 'Exemptions', score: exemptionScore, max: 25 },
+    { icon: '📋', label: 'Deductions', score: deductionScore, max: 25 },
+    { icon: '⚡', label: 'Optimizations', score: optScore, max: 25 },
+  ];
+
+  return (
+    <div className="card">
+      <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+        <span>🩺</span><span>Tax Health Score</span>
+      </h2>
+      <div className="health-score-total">
+        <div className="health-score-number" style={{ color: gradeColor }}>{totalScore}</div>
+        <div className="health-score-label">out of 100</div>
+        <div className="health-grade-badge" style={{ background: gradeBg, color: gradeColor }}>
+          {grade}
+        </div>
+      </div>
+      <div className="health-score-grid">
+        {pillars.map(p => (
+          <div key={p.label} className="health-pillar">
+            <div className="health-pillar-header">
+              <span className="health-pillar-icon">{p.icon}</span>
+              <span className="health-pillar-score" style={{ color: p.score >= p.max * 0.8 ? 'var(--color-success)' : p.score >= p.max * 0.5 ? 'var(--color-warning)' : 'var(--color-danger)' }}>
+                {p.score}/{p.max}
+              </span>
+            </div>
+            <div className="health-pillar-label">{p.label}</div>
+            <div className="health-pillar-bar-track">
+              <div className="health-pillar-bar-fill" style={{
+                width: animated ? `${(p.score / p.max) * 100}%` : '0%',
+                background: p.score >= p.max * 0.8 ? 'var(--color-success)' : p.score >= p.max * 0.5 ? 'var(--color-warning)' : 'var(--color-danger)',
+              }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── FY Countdown ──
+
+function FYCountdown() {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0 });
+
+  useEffect(() => {
+    function calc() {
+      // FY2026-27 ends March 31, 2027 at 23:59:59
+      const fyEnd = new Date(2027, 2, 31, 23, 59, 59);
+      const now = new Date();
+      const diff = fyEnd.getTime() - now.getTime();
+      if (diff <= 0) { setTimeLeft({ days: 0, hours: 0, minutes: 0 }); return; }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      setTimeLeft({ days, hours, minutes });
+    }
+    calc();
+    const interval = setInterval(calc, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const urgency = timeLeft.days < 30 ? 'var(--color-danger)' : timeLeft.days < 90 ? 'var(--color-warning)' : 'var(--accent-primary)';
+
+  return (
+    <div className="card">
+      <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+        <span>⏰</span><span>FY 2026-27 Ends In</span>
+      </h2>
+      <div className="fy-countdown-segments" style={{ justifyContent: 'center' }}>
+        <div className="fy-countdown-segment">
+          <span className="fy-countdown-number" style={{ '--accent-gradient': `linear-gradient(135deg, ${urgency}, ${urgency})` } as React.CSSProperties}>
+            {String(timeLeft.days).padStart(3, '0')}
+          </span>
+          <span className="fy-countdown-unit">Days</span>
+        </div>
+        <span className="fy-countdown-separator">:</span>
+        <div className="fy-countdown-segment">
+          <span className="fy-countdown-number">{String(timeLeft.hours).padStart(2, '0')}</span>
+          <span className="fy-countdown-unit">Hours</span>
+        </div>
+        <span className="fy-countdown-separator">:</span>
+        <div className="fy-countdown-segment">
+          <span className="fy-countdown-number">{String(timeLeft.minutes).padStart(2, '0')}</span>
+          <span className="fy-countdown-unit">Mins</span>
+        </div>
+      </div>
+      <div style={{ marginTop: 'var(--space-4)', padding: 'var(--space-3)', background: 'var(--bg-surface-raised)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', textAlign: 'center' }}>
+        {timeLeft.days < 30
+          ? '🔴 Final stretch! Make tax-saving investments before March 31.'
+          : timeLeft.days < 90
+          ? '🟡 Q4 is here — review your 80C investments and file advance tax.'
+          : '📅 March 31, 2027 · Last date for tax-saving investments (Old Regime)'
+        }
+      </div>
     </div>
   );
 }
