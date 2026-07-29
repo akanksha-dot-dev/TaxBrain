@@ -493,7 +493,8 @@ export default function OnboardingWizard() {
               <label className="input-label" htmlFor="basic-pct">Basic salary as % of CTC</label>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                 <input id="basic-pct" className="slider" type="range" min={30} max={60}
-                  value={basicPercent} onChange={e => setBasicPercent(Number(e.target.value))} />
+                  value={basicPercent} onChange={e => setBasicPercent(Number(e.target.value))}
+                  style={{ '--slider-fill': `${Math.round(((basicPercent - 30) / 30) * 100)}%` } as React.CSSProperties} />
                 <span style={{ fontWeight: 600, minWidth: '45px', color: 'var(--text-primary)' }}>{basicPercent}%</span>
               </div>
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
