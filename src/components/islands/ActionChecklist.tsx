@@ -375,16 +375,10 @@ function ActionRow({ action, completed, onToggle, animationDelay = 0 }: {
 
 function Confetti() {
   const COLORS = ['#667eea', '#764ba2', '#00E676', '#FFD740', '#FF5252', '#40C4FF', '#f5576c', '#43e97b'];
-  const SHAPES = [
-    'border-radius: 50%',
-    'border-radius: 2px',
-    'clip-path: polygon(50% 0%, 0% 100%, 100% 100%)',
-    'border-radius: 0',
-  ];
   const pieces = Array.from({ length: 60 }, (_, i) => ({
     id: i,
     color: COLORS[i % COLORS.length],
-    shape: SHAPES[i % SHAPES.length],
+    borderRadius: i % 2 === 0 ? '50%' : '2px',
     left: `${(i * 37) % 100}%`,
     width: `${6 + (i % 4) * 3}px`,
     height: `${6 + (i % 3) * 4}px`,
@@ -403,10 +397,10 @@ function Confetti() {
             width: p.width,
             height: p.height,
             background: p.color,
-            style: p.shape,
+            borderRadius: p.borderRadius,
             animationDuration: p.duration,
             animationDelay: p.delay,
-          } as React.CSSProperties}
+          }}
         />
       ))}
     </div>

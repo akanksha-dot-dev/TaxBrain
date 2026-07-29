@@ -493,34 +493,37 @@ function TaxLineChart({ baseProfile, currentSalaryMultiplier, currentRent, curre
 
   // Generate data points across salary range (50% to 200% of base)
   const points = 20;
-  const dataPoints = Array.from({ length: points + 1 }, (_, i) => {
-    const mult = 50 + (i / points) * 150; // 50% to 200%
-    const p = structuredClone(baseProfile);
-    p.monthlyRent = currentRent;
-    p.deductions.section24B = currentHomeLoan;
-    p.optimizations.employerNPS = currentNpsPercent > 0;
-    p.optimizations.mealVouchers = mealVouchers;
-    const ratio = mult / 100;
-    for (const job of p.jobs) {
-      const c = job.components;
-      c.basic = Math.round((c.basic ?? 0) * ratio);
-      c.hra = Math.round((c.hra ?? 0) * ratio);
-      c.lta = Math.round((c.lta ?? 0) * ratio);
-      c.specialAllowance = Math.round((c.specialAllowance ?? 0) * ratio);
-      c.fuelMaintenance = Math.round((c.fuelMaintenance ?? 0) * ratio);
-      c.flexiBasket = Math.round((c.flexiBasket ?? 0) * ratio);
-      c.managementAllowance = Math.round((c.managementAllowance ?? 0) * ratio);
-      c.otherAllowances = Math.round((c.otherAllowances ?? 0) * ratio);
-      job.variablePay = Math.round((job.variablePay ?? 0) * ratio);
-      job.employerPF = Math.round((job.employerPF ?? 0) * ratio);
-    }
-    try {
-      const cmp = compareRegimes(p, TAX_CONFIG_FY2026);
-      return { mult, newTax: cmp.newRegime.totalTax, oldTax: cmp.oldRegime.totalTax, grossSalary: cmp.newRegime.grossSalary };
-    } catch {
-      return { mult, newTax: 0, oldTax: 0, grossSalary: 0 };
-    }
-  });
+  const dataPoints = useMemo(() => {
+    if (!baseProfile) return [];
+    return Array.from({ length: points + 1 }, (_, i) => {
+      const mult = 50 + (i / points) * 150; // 50% to 200%
+      const p = JSON.parse(JSON.stringify(baseProfile)) as UserProfile;
+      p.monthlyRent = currentRent;
+      p.deductions.section24B = currentHomeLoan;
+      p.optimizations.employerNPS = currentNpsPercent > 0;
+      p.optimizations.mealVouchers = mealVouchers;
+      const ratio = mult / 100;
+      for (const job of p.jobs) {
+        const c = job.components;
+        c.basic = Math.round((c.basic ?? 0) * ratio);
+        c.hra = Math.round((c.hra ?? 0) * ratio);
+        c.lta = Math.round((c.lta ?? 0) * ratio);
+        c.specialAllowance = Math.round((c.specialAllowance ?? 0) * ratio);
+        c.fuelMaintenance = Math.round((c.fuelMaintenance ?? 0) * ratio);
+        c.flexiBasket = Math.round((c.flexiBasket ?? 0) * ratio);
+        c.managementAllowance = Math.round((c.managementAllowance ?? 0) * ratio);
+        c.otherAllowances = Math.round((c.otherAllowances ?? 0) * ratio);
+        job.variablePay = Math.round((job.variablePay ?? 0) * ratio);
+        job.employerPF = Math.round((job.employerPF ?? 0) * ratio);
+      }
+      try {
+        const cmp = compareRegimes(p, TAX_CONFIG_FY2026);
+        return { mult, newTax: cmp.newRegime.totalTax, oldTax: cmp.oldRegime.totalTax, grossSalary: cmp.newRegime.grossSalary };
+      } catch {
+        return { mult, newTax: 0, oldTax: 0, grossSalary: 0 };
+      }
+    });
+  }, [baseProfile, currentRent, currentHomeLoan, currentNpsPercent, mealVouchers]);
 
   const maxTax = Math.max(...dataPoints.map(d => Math.max(d.newTax, d.oldTax)), 1);
   const maxSalary = Math.max(...dataPoints.map(d => d.grossSalary), 1);
