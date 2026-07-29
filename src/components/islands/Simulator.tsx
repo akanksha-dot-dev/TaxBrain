@@ -29,13 +29,12 @@ export default function Simulator() {
 
   useEffect(() => {
     const p = loadProfile();
-    setBaseProfile(p);
-    if (p && p.jobs.length > 0) {
-      setRent(p.monthlyRent);
-      setMealVouchers(p.optimizations.mealVouchers);
-      setHomeLoanInterest(p.deductions.section24B);
-      setNpsPercent(p.optimizations.employerNPS ? 14 : 0);
-    }
+    const active = (p && p.jobs.length > 0) ? p : SAMPLE_PROFILES[0].profile;
+    setBaseProfile(active);
+    setRent(active.monthlyRent);
+    setMealVouchers(active.optimizations.mealVouchers);
+    setHomeLoanInterest(active.deductions.section24B);
+    setNpsPercent(active.optimizations.employerNPS ? 14 : 0);
   }, []);
 
   if (baseProfile === undefined) {

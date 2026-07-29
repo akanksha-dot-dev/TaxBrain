@@ -11,7 +11,6 @@
  */
 
 import Sidebar from './Sidebar.astro';
-import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 
 interface Props {
@@ -47,9 +46,6 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
   <!-- Favicon (simple inline SVG) -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
-
-  <!-- View Transitions (ClientRouter in Astro 5+) -->
-  <ClientRouter />
 
   <!-- Theme initialization — runs before paint to prevent flash -->
   <script is:inline>
