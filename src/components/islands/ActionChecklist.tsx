@@ -31,6 +31,9 @@ export default function ActionChecklist() {
   const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
   const [completedState, setCompletedState] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
+  const [search, setSearch] = useState('');
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [prevCompleted, setPrevCompleted] = useState(0);
 
   useEffect(() => {
     setProfile(loadProfile());
@@ -53,6 +56,14 @@ export default function ActionChecklist() {
   const handleToggle = (id: string) => {
     const newState = toggleAction(id);
     setCompletedState({ ...newState });
+    // Check if all done
+    const totalActs = actions.length;
+    const completedCount = Object.values(newState).filter(Boolean).length;
+    if (completedCount === totalActs && totalActs > 0 && completedCount > prevCompleted) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 4000);
+    }
+    setPrevCompleted(completedCount);
   };
 
   const handleSelectSample = (sample: UserProfile) => {
@@ -93,7 +104,6 @@ export default function ActionChecklist() {
     );
   }
 
-  // Group actions by category
   const grouped = useMemo(() => {
     const groups: Record<string, ActionItem[]> = {};
     for (const action of actions) {
@@ -102,11 +112,12 @@ export default function ActionChecklist() {
       const isCompleted = completedState[action.id] || false;
       if (filter === 'pending' && isCompleted) continue;
       if (filter === 'completed' && !isCompleted) continue;
+      if (search && !action.text.toLowerCase().includes(search.toLowerCase()) && !action.details?.toLowerCase().includes(search.toLowerCase())) continue;
 
       groups[action.category].push(action);
     }
     return groups;
-  }, [actions, completedState, filter]);
+  }, [actions, completedState, filter, search]);
 
   // Stats
   const total = actions.length;
@@ -115,6 +126,9 @@ export default function ActionChecklist() {
 
   return (
     <div className="actions-page">
+      {/* Confetti */}
+      {showConfetti && <Confetti />}
+
       <h1 className="page-title">Action Checklist</h1>
       <p className="page-subtitle">
         Track your tax optimization tasks for FY 2026-27
@@ -137,41 +151,58 @@ export default function ActionChecklist() {
           </span>
         </div>
         <div style={{
-          height: '10px', background: 'var(--bg-surface-raised)',
+          height: '12px', background: 'var(--bg-surface-raised)',
           borderRadius: 'var(--radius-full)', overflow: 'hidden',
+          position: 'relative',
         }}>
           <div style={{
             height: '100%',
             width: `${progressPercent}%`,
             background: completed === total
-              ? 'var(--color-success)'
+              ? 'linear-gradient(90deg, var(--green-600), var(--green-400))'
               : 'var(--accent-gradient)',
             borderRadius: 'var(--radius-full)',
             transition: 'width var(--transition-base)',
+            boxShadow: progressPercent > 0 ? '0 0 8px rgba(102,126,234,0.4)' : 'none',
           }} />
         </div>
+        {completed === total && total > 0 && (
+          <div style={{ marginTop: 'var(--space-3)', textAlign: 'center', fontSize: 'var(--text-sm)', color: 'var(--color-success)', fontWeight: 600 }}>
+            🎉 All done! You're fully optimized for FY 2026-27!
+          </div>
+        )}
       </div>
 
-      {/* Filter Tabs */}
-      <div className="tabs" style={{ marginBottom: 'var(--space-6)' }}>
-        <button
-          className={`tab ${filter === 'all' ? 'active' : ''}`}
-          onClick={() => setFilter('all')}
-        >
-          All ({total})
-        </button>
-        <button
-          className={`tab ${filter === 'pending' ? 'active' : ''}`}
-          onClick={() => setFilter('pending')}
-        >
-          Pending ({total - completed})
-        </button>
-        <button
-          className={`tab ${filter === 'completed' ? 'active' : ''}`}
-          onClick={() => setFilter('completed')}
-        >
-          Done ({completed})
-        </button>
+      {/* Search + Filter Tabs */}
+      <div style={{ marginBottom: 'var(--space-4)' }}>
+        <input
+          className="input"
+          type="text"
+          placeholder="🔍 Search actions..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ marginBottom: 'var(--space-3)' }}
+        />
+        <div className="tabs">
+          <button
+            className={`tab ${filter === 'all' ? 'active' : ''}`}
+            onClick={() => setFilter('all')}
+          >
+            All ({total})
+          </button>
+          <button
+            className={`tab ${filter === 'pending' ? 'active' : ''}`}
+            onClick={() => setFilter('pending')}
+          >
+            Pending ({total - completed})
+          </button>
+          <button
+            className={`tab ${filter === 'completed' ? 'active' : ''}`}
+            onClick={() => setFilter('completed')}
+          >
+            Done ({completed})
+          </button>
+        </div>
       </div>
 
       {/* Action Groups */}
@@ -202,12 +233,13 @@ export default function ActionChecklist() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-              {items.map((action) => (
+              {items.map((action, itemIdx) => (
                 <ActionRow
                   key={action.id}
                   action={action}
                   completed={completedState[action.id] || false}
                   onToggle={() => handleToggle(action.id)}
+                  animationDelay={itemIdx * 60}
                 />
               ))}
             </div>
@@ -228,25 +260,35 @@ export default function ActionChecklist() {
           </p>
         </div>
       )}
+
+      {/* No search results */}
+      {search && Object.values(grouped).every(g => !g || g.length === 0) && (
+        <div className="card" style={{ textAlign: 'center', padding: 'var(--space-8)' }}>
+          <p style={{ fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-2)' }}>🔍</p>
+          <p style={{ color: 'var(--text-secondary)' }}>No actions match "{search}"</p>
+        </div>
+      )}
     </div>
   );
 }
 
-function ActionRow({ action, completed, onToggle }: {
+function ActionRow({ action, completed, onToggle, animationDelay = 0 }: {
   action: ActionItem;
   completed: boolean;
   onToggle: () => void;
+  animationDelay?: number;
 }) {
   const [expanded, setExpanded] = useState(false);
   const priorityMeta = PRIORITY_META[action.priority];
 
   return (
     <div
-      className="card"
+      className="card action-item-animated"
       style={{
         padding: 'var(--space-4)',
         opacity: completed ? 0.6 : 1,
         transition: 'opacity var(--transition-fast)',
+        animationDelay: `${animationDelay}ms`,
       }}
     >
       <div style={{
@@ -325,6 +367,48 @@ function ActionRow({ action, completed, onToggle }: {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Confetti Component ──
+
+function Confetti() {
+  const COLORS = ['#667eea', '#764ba2', '#00E676', '#FFD740', '#FF5252', '#40C4FF', '#f5576c', '#43e97b'];
+  const SHAPES = [
+    'border-radius: 50%',
+    'border-radius: 2px',
+    'clip-path: polygon(50% 0%, 0% 100%, 100% 100%)',
+    'border-radius: 0',
+  ];
+  const pieces = Array.from({ length: 60 }, (_, i) => ({
+    id: i,
+    color: COLORS[i % COLORS.length],
+    shape: SHAPES[i % SHAPES.length],
+    left: `${(i * 37) % 100}%`,
+    width: `${6 + (i % 4) * 3}px`,
+    height: `${6 + (i % 3) * 4}px`,
+    duration: `${1.5 + (i % 5) * 0.4}s`,
+    delay: `${(i * 0.07) % 1.2}s`,
+  }));
+
+  return (
+    <div className="confetti-container">
+      {pieces.map(p => (
+        <div
+          key={p.id}
+          className="confetti-piece"
+          style={{
+            left: p.left,
+            width: p.width,
+            height: p.height,
+            background: p.color,
+            style: p.shape,
+            animationDuration: p.duration,
+            animationDelay: p.delay,
+          } as React.CSSProperties}
+        />
+      ))}
     </div>
   );
 }
