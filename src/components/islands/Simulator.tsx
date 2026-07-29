@@ -292,6 +292,19 @@ export default function Simulator() {
             />
           </div>
 
+          {/* SVG Line Chart */}
+          <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
+            <h3 className="section-title" style={{ marginBottom: 'var(--space-3)' }}>📈 Tax vs Salary (Live Chart)</h3>
+            <TaxLineChart
+              baseProfile={baseProfile!}
+              currentSalaryMultiplier={salaryMultiplier}
+              currentRent={rent}
+              currentHomeLoan={homeLoanInterest}
+              currentNpsPercent={npsPercent}
+              mealVouchers={mealVouchers}
+            />
+          </div>
+
           {/* Insight Card */}
           <div className="card card-glass">
             <h3 className="section-title">💡 Insight</h3>
@@ -458,6 +471,157 @@ function MetricCard({ label, value, subValue, accent }: {
           {subValue}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── SVG Tax Line Chart ──
+
+function TaxLineChart({ baseProfile, currentSalaryMultiplier, currentRent, currentHomeLoan, currentNpsPercent, mealVouchers }: {
+  baseProfile: UserProfile;
+  currentSalaryMultiplier: number;
+  currentRent: number;
+  currentHomeLoan: number;
+  currentNpsPercent: number;
+  mealVouchers: boolean;
+}) {
+  const W = 360;
+  const H = 180;
+  const PAD = { top: 12, right: 16, bottom: 36, left: 52 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  // Generate data points across salary range (50% to 200% of base)
+  const points = 20;
+  const dataPoints = Array.from({ length: points + 1 }, (_, i) => {
+    const mult = 50 + (i / points) * 150; // 50% to 200%
+    const p = structuredClone(baseProfile);
+    p.monthlyRent = currentRent;
+    p.deductions.section24B = currentHomeLoan;
+    p.optimizations.employerNPS = currentNpsPercent > 0;
+    p.optimizations.mealVouchers = mealVouchers;
+    const ratio = mult / 100;
+    for (const job of p.jobs) {
+      const c = job.components;
+      c.basic = Math.round((c.basic ?? 0) * ratio);
+      c.hra = Math.round((c.hra ?? 0) * ratio);
+      c.lta = Math.round((c.lta ?? 0) * ratio);
+      c.specialAllowance = Math.round((c.specialAllowance ?? 0) * ratio);
+      c.fuelMaintenance = Math.round((c.fuelMaintenance ?? 0) * ratio);
+      c.flexiBasket = Math.round((c.flexiBasket ?? 0) * ratio);
+      c.managementAllowance = Math.round((c.managementAllowance ?? 0) * ratio);
+      c.otherAllowances = Math.round((c.otherAllowances ?? 0) * ratio);
+      job.variablePay = Math.round((job.variablePay ?? 0) * ratio);
+      job.employerPF = Math.round((job.employerPF ?? 0) * ratio);
+    }
+    try {
+      const cmp = compareRegimes(p, TAX_CONFIG_FY2026);
+      return { mult, newTax: cmp.newRegime.totalTax, oldTax: cmp.oldRegime.totalTax, grossSalary: cmp.newRegime.grossSalary };
+    } catch {
+      return { mult, newTax: 0, oldTax: 0, grossSalary: 0 };
+    }
+  });
+
+  const maxTax = Math.max(...dataPoints.map(d => Math.max(d.newTax, d.oldTax)), 1);
+  const maxSalary = Math.max(...dataPoints.map(d => d.grossSalary), 1);
+
+  function toX(mult: number) {
+    return PAD.left + ((mult - 50) / 150) * chartW;
+  }
+  function toY(tax: number) {
+    return PAD.top + chartH - (tax / maxTax) * chartH;
+  }
+
+  const newPath = dataPoints.map((d, i) => `${i === 0 ? 'M' : 'L'}${toX(d.mult).toFixed(1)},${toY(d.newTax).toFixed(1)}`).join(' ');
+  const oldPath = dataPoints.map((d, i) => `${i === 0 ? 'M' : 'L'}${toX(d.mult).toFixed(1)},${toY(d.oldTax).toFixed(1)}`).join(' ');
+
+  // Area paths
+  const baselineY = PAD.top + chartH;
+  const newArea = `${newPath} L${toX(200).toFixed(1)},${baselineY} L${toX(50).toFixed(1)},${baselineY} Z`;
+  const oldArea = `${oldPath} L${toX(200).toFixed(1)},${baselineY} L${toX(50).toFixed(1)},${baselineY} Z`;
+
+  // Current position
+  const curIdx = Math.round((currentSalaryMultiplier - 50) / 150 * points);
+  const curPoint = dataPoints[Math.min(curIdx, dataPoints.length - 1)];
+  const curX = curPoint ? toX(curPoint.mult) : toX(currentSalaryMultiplier);
+  const curNewY = curPoint ? toY(curPoint.newTax) : PAD.top;
+  const curOldY = curPoint ? toY(curPoint.oldTax) : PAD.top;
+
+  // Y axis labels
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(t => ({ val: t * maxTax, y: PAD.top + chartH - t * chartH }));
+
+  function fmtShort(n: number) {
+    if (n >= 10_00_000) return `${(n/10_00_000).toFixed(1)}L`;
+    if (n >= 1_00_000) return `${(n/1_00_000).toFixed(0)}L`;
+    if (n >= 1_000) return `${(n/1_000).toFixed(0)}K`;
+    return String(n);
+  }
+
+  return (
+    <div className="sim-chart-container">
+      <svg viewBox={`0 0 ${W} ${H}`} className="sim-chart-svg">
+        {/* Grid lines */}
+        {yTicks.map((t, i) => (
+          <g key={i}>
+            <line x1={PAD.left} y1={t.y} x2={PAD.left + chartW} y2={t.y} className="sim-chart-grid" />
+            <text x={PAD.left - 6} y={t.y + 4} textAnchor="end" fontSize="9" fill="var(--text-muted)">
+              {fmtShort(t.val)}
+            </text>
+          </g>
+        ))}
+
+        {/* X axis salary labels */}
+        {[50, 100, 150, 200].map(mult => (
+          <text key={mult} x={toX(mult)} y={H - 4} textAnchor="middle" fontSize="9" fill="var(--text-muted)">
+            {mult}%
+          </text>
+        ))}
+
+        {/* Axes */}
+        <line x1={PAD.left} y1={PAD.top} x2={PAD.left} y2={PAD.top + chartH} className="sim-chart-axis" />
+        <line x1={PAD.left} y1={PAD.top + chartH} x2={PAD.left + chartW} y2={PAD.top + chartH} className="sim-chart-axis" />
+
+        {/* Area fills */}
+        <path d={oldArea} className="sim-chart-area-old" />
+        <path d={newArea} className="sim-chart-area-new" />
+
+        {/* Lines */}
+        <path d={oldPath} className="sim-chart-line-old" />
+        <path d={newPath} className="sim-chart-line-new" />
+
+        {/* Current position vertical line */}
+        <line
+          x1={curX} y1={PAD.top}
+          x2={curX} y2={PAD.top + chartH}
+          stroke="var(--accent-primary)" strokeWidth="1"
+          strokeDasharray="3 3" opacity="0.6"
+        />
+
+        {/* Current position dots */}
+        <circle cx={curX} cy={curNewY} r={5} fill="var(--green-500)" className="sim-chart-dot" />
+        <circle cx={curX} cy={curNewY} r={8} fill="var(--green-500)" opacity="0.2">
+          <animate attributeName="r" values="5;10;5" dur="2s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.2;0;0.2" dur="2s" repeatCount="indefinite" />
+        </circle>
+        <circle cx={curX} cy={curOldY} r={5} fill="var(--red-400)" className="sim-chart-dot" />
+        <circle cx={curX} cy={curOldY} r={8} fill="var(--red-400)" opacity="0.2">
+          <animate attributeName="r" values="5;10;5" dur="2s" repeatCount="indefinite" begin="0.5s" />
+          <animate attributeName="opacity" values="0.2;0;0.2" dur="2s" repeatCount="indefinite" begin="0.5s" />
+        </circle>
+      </svg>
+      <div className="sim-chart-legend">
+        <div className="sim-chart-legend-item">
+          <div className="sim-chart-legend-dot" style={{ background: 'var(--green-500)' }} />
+          New Regime
+        </div>
+        <div className="sim-chart-legend-item">
+          <div className="sim-chart-legend-dot" style={{ background: 'var(--red-400)' }} />
+          Old Regime
+        </div>
+        <div className="sim-chart-legend-item" style={{ color: 'var(--accent-primary)' }}>
+          ← You are here ({currentSalaryMultiplier}%)
+        </div>
+      </div>
     </div>
   );
 }
