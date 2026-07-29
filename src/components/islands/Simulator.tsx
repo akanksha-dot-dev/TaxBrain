@@ -524,6 +524,8 @@ function TaxLineChart({ baseProfile, currentSalaryMultiplier, currentRent, curre
     });
   }, [baseProfile, currentRent, currentHomeLoan, currentNpsPercent, mealVouchers]);
 
+  if (!dataPoints || dataPoints.length === 0) return null;
+
   const maxTax = Math.max(...dataPoints.map(d => Math.max(d.newTax, d.oldTax)), 1);
   const maxSalary = Math.max(...dataPoints.map(d => d.grossSalary), 1);
 
