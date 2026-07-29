@@ -26,7 +26,7 @@ import {
 import type { UserProfile, TaxResult, SlabBreakdown, RegimeComparison } from '../../lib/types';
 
 export default function Calculator() {
-  const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
+  const [profile, setProfile] = useState<UserProfile>(() => SAMPLE_PROFILES[0].profile);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     optimizations: true,
     'job-0': true,
@@ -35,7 +35,9 @@ export default function Calculator() {
 
   useEffect(() => {
     const p = loadProfile();
-    setProfile((p && p.jobs.length > 0) ? p : SAMPLE_PROFILES[0].profile);
+    if (p && p.jobs.length > 0) {
+      setProfile(p);
+    }
   }, []);
 
   const comparison = useMemo(() => {

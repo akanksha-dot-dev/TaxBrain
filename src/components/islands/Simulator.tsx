@@ -20,30 +20,23 @@ import { formatCurrency, formatCurrencyShort, formatPercent } from '../../lib/fo
 import type { UserProfile } from '../../lib/types';
 
 export default function Simulator() {
-  const [baseProfile, setBaseProfile] = useState<UserProfile | null | undefined>(undefined);
-  const [rent, setRent] = useState(13000);
+  const [baseProfile, setBaseProfile] = useState<UserProfile>(() => SAMPLE_PROFILES[0].profile);
+  const [rent, setRent] = useState(() => SAMPLE_PROFILES[0].profile.monthlyRent);
   const [salaryMultiplier, setSalaryMultiplier] = useState(100);
-  const [homeLoanInterest, setHomeLoanInterest] = useState(0);
-  const [npsPercent, setNpsPercent] = useState(14);
-  const [mealVouchers, setMealVouchers] = useState(true);
+  const [homeLoanInterest, setHomeLoanInterest] = useState(() => SAMPLE_PROFILES[0].profile.deductions.section24B);
+  const [npsPercent, setNpsPercent] = useState(() => SAMPLE_PROFILES[0].profile.optimizations.employerNPS ? 14 : 0);
+  const [mealVouchers, setMealVouchers] = useState(() => SAMPLE_PROFILES[0].profile.optimizations.mealVouchers);
 
   useEffect(() => {
     const p = loadProfile();
-    const active = (p && p.jobs.length > 0) ? p : SAMPLE_PROFILES[0].profile;
-    setBaseProfile(active);
-    setRent(active.monthlyRent);
-    setMealVouchers(active.optimizations.mealVouchers);
-    setHomeLoanInterest(active.deductions.section24B);
-    setNpsPercent(active.optimizations.employerNPS ? 14 : 0);
+    if (p && p.jobs.length > 0) {
+      setBaseProfile(p);
+      setRent(p.monthlyRent);
+      setMealVouchers(p.optimizations.mealVouchers);
+      setHomeLoanInterest(p.deductions.section24B);
+      setNpsPercent(p.optimizations.employerNPS ? 14 : 0);
+    }
   }, []);
-
-  if (baseProfile === undefined) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', color: 'var(--text-muted)' }}>
-        Loading simulator...
-      </div>
-    );
-  }
 
   // Build modified profile from slider values
   const modifiedProfile = useMemo(() => {

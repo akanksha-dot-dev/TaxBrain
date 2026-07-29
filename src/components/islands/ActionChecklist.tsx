@@ -28,7 +28,7 @@ const PRIORITY_META: Record<string, { label: string; color: string }> = {
 };
 
 export default function ActionChecklist() {
-  const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
+  const [profile, setProfile] = useState<UserProfile>(() => SAMPLE_PROFILES[0].profile);
   const [completedState, setCompletedState] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
   const [search, setSearch] = useState('');
@@ -37,18 +37,11 @@ export default function ActionChecklist() {
 
   useEffect(() => {
     const p = loadProfile();
-    const active = (p && p.jobs.length > 0) ? p : SAMPLE_PROFILES[0].profile;
-    setProfile(active);
+    if (p && p.jobs.length > 0) {
+      setProfile(p);
+    }
     setCompletedState(loadActionState());
   }, []);
-
-  if (profile === undefined) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', color: 'var(--text-muted)' }}>
-        Loading action items...
-      </div>
-    );
-  }
 
   const actions = useMemo(() => {
     if (!profile || profile.jobs.length === 0) return [];
