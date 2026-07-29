@@ -134,6 +134,10 @@ export default function Simulator() {
   }
 
   const { newRegime, oldRegime, winner, savings } = comparison;
+  const savingsPerDay = Math.round(savings / 365);
+
+  // Auto-scale rent slider: max = 50% of monthly take-home (minimum 100,000)
+  const rentSliderMax = Math.max(100000, Math.round((newRegime.monthlyTakeHome * 0.5) / 5000) * 5000);
 
   return (
     <div className="simulator">
@@ -162,13 +166,13 @@ export default function Simulator() {
             label="Monthly Rent"
             value={rent}
             min={0}
-            max={Math.max(150000, Math.round((newRegime.grossSalary / 12) * 0.6))}
+            max={rentSliderMax}
             step={1000}
             formatValue={(v) => formatCurrency(v)}
             onChange={setRent}
             info={rent > 0 && rentBreakeven > 0
               ? `Old regime becomes better at ~${formatCurrency(rentBreakeven)}/month`
-              : undefined
+              : 'Set to 0 if you own your home'
             }
           />
 
@@ -265,13 +269,15 @@ export default function Simulator() {
             gap: 'var(--space-4)', marginBottom: 'var(--space-4)',
           }}>
             <MetricCard
-              label="Tax Savings"
+              label="Annual Tax Savings"
               value={formatCurrency(savings)}
+              subValue={savingsPerDay > 0 ? `≈ ${formatCurrency(savingsPerDay)}/day` : undefined}
               accent="success"
             />
             <MetricCard
               label="Monthly Difference"
               value={formatCurrency(Math.round(savings / 12))}
+              subValue={savings > 0 ? `${winner === 'new' ? 'New' : 'Old'} regime wins` : undefined}
               accent="success"
             />
             <MetricCard
@@ -322,6 +328,9 @@ function SliderCard({ label, value, min, max, step, formatValue, onChange, info 
   onChange: (v: number) => void;
   info?: string;
 }) {
+  // Compute fill percentage for CSS gradient track
+  const fillPct = max > min ? Math.round(((value - min) / (max - min)) * 100) : 0;
+
   return (
     <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
       <div style={{
@@ -345,6 +354,7 @@ function SliderCard({ label, value, min, max, step, formatValue, onChange, info 
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         aria-label={label}
+        style={{ '--slider-fill': `${fillPct}%` } as React.CSSProperties}
       />
       <div style={{
         display: 'flex', justifyContent: 'space-between',
@@ -422,9 +432,10 @@ function RegimeBar({ label, tax, maxTax, isWinner, takeHome, effectiveRate }: {
   );
 }
 
-function MetricCard({ label, value, accent }: {
+function MetricCard({ label, value, subValue, accent }: {
   label: string;
   value: string;
+  subValue?: string;
   accent: 'success' | 'default';
 }) {
   return (
@@ -442,6 +453,11 @@ function MetricCard({ label, value, accent }: {
       }}>
         {value}
       </div>
+      {subValue && (
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>
+          {subValue}
+        </div>
+      )}
     </div>
   );
 }
