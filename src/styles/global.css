@@ -1097,3 +1097,627 @@ html {
   }
 }
 
+/* ============================================================
+   ENHANCEMENT 1: SLAB VISUALIZATION BARS
+   ============================================================ */
+
+.slab-bars-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.slab-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.slab-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: var(--text-xs);
+}
+
+.slab-bar-label {
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+}
+
+.slab-bar-values {
+  display: flex;
+  gap: var(--space-3);
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  font-size: 11px;
+}
+
+.slab-bar-tax {
+  font-weight: var(--weight-semibold);
+}
+
+.slab-bar-track {
+  height: 28px;
+  background: var(--bg-surface-raised);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  position: relative;
+}
+
+.slab-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-sm);
+  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: var(--space-2);
+  min-width: 2px;
+}
+
+.slab-bar-rate-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.85);
+  white-space: nowrap;
+}
+
+.slab-bar-zero {
+  opacity: 0.3;
+}
+
+.slab-you-are-here {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-2) var(--space-3);
+  background: rgba(102, 126, 234, 0.12);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  color: var(--accent-primary);
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-3);
+}
+
+/* ============================================================
+   ENHANCEMENT 2: OPTIMIZATION SCORE RING
+   ============================================================ */
+
+.score-ring-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+
+.score-ring-svg {
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.score-ring-track {
+  fill: none;
+  stroke: var(--bg-surface-raised);
+  stroke-width: 8;
+}
+
+.score-ring-fill {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.score-ring-text-group {
+  transform: rotate(90deg);
+}
+
+/* ============================================================
+   ENHANCEMENT 3: TAX HEALTH SCORE CARD
+   ============================================================ */
+
+.health-score-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.health-pillar {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-subtle);
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.health-pillar:hover {
+  border-color: rgba(102, 126, 234, 0.3);
+  transform: translateY(-1px);
+}
+
+.health-pillar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.health-pillar-icon {
+  font-size: 1.1rem;
+}
+
+.health-pillar-score {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.health-pillar-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+  font-weight: var(--weight-medium);
+}
+
+.health-pillar-bar-track {
+  height: 4px;
+  background: var(--bg-surface-overlay);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.health-pillar-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.health-score-total {
+  text-align: center;
+  margin-bottom: var(--space-4);
+}
+
+.health-score-number {
+  font-size: var(--text-4xl);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.health-score-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: var(--space-1);
+}
+
+.health-grade-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-top: var(--space-2);
+}
+
+/* ============================================================
+   ENHANCEMENT 4: WELCOME SCREEN PARTICLES
+   ============================================================ */
+
+.hero-particles-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.hero-particle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0;
+  animation: particleFloat linear infinite;
+}
+
+@keyframes particleFloat {
+  0%   { opacity: 0;   transform: translateY(0) scale(0.5); }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.3; }
+  100% { opacity: 0;   transform: translateY(-120px) scale(1.2); }
+}
+
+.welcome-hero-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: rgba(102,126,234,0.12);
+  border: 1px solid rgba(102,126,234,0.25);
+  border-radius: var(--radius-full);
+  padding: 6px 16px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--accent-primary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-5);
+  animation: badgePulse 3s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(102,126,234,0.2); }
+  50% { box-shadow: 0 0 0 6px rgba(102,126,234,0); }
+}
+
+.cta-button-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-button-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  animation: shimmerSweep 2.5s ease-in-out infinite;
+}
+
+@keyframes shimmerSweep {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+.feature-card-enhanced {
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card-enhanced::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, transparent 60%, rgba(102,126,234,0.3));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.stats-ticker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  margin-top: var(--space-4);
+}
+
+.stats-ticker-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.stats-ticker-value {
+  font-weight: var(--weight-bold);
+  color: var(--accent-primary);
+}
+
+/* ============================================================
+   ENHANCEMENT 5: SIMULATOR SVG CHART
+   ============================================================ */
+
+.sim-chart-container {
+  width: 100%;
+  position: relative;
+}
+
+.sim-chart-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.sim-chart-axis {
+  stroke: var(--border-subtle);
+  stroke-width: 1;
+}
+
+.sim-chart-grid {
+  stroke: var(--border-subtle);
+  stroke-width: 0.5;
+  stroke-dasharray: 4 4;
+}
+
+.sim-chart-line-new {
+  fill: none;
+  stroke: var(--green-500);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: d 0.3s ease;
+}
+
+.sim-chart-line-old {
+  fill: none;
+  stroke: var(--red-400);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: d 0.3s ease;
+}
+
+.sim-chart-area-new {
+  fill: rgba(0, 230, 118, 0.08);
+}
+
+.sim-chart-area-old {
+  fill: rgba(255, 82, 82, 0.06);
+}
+
+.sim-chart-dot {
+  transition: cx 0.3s ease;
+}
+
+.sim-chart-legend {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: center;
+  margin-top: var(--space-3);
+}
+
+.sim-chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.sim-chart-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   ENHANCEMENT 6: SIDEBAR ANIMATED PILL + NOTIFICATION DOT
+   ============================================================ */
+
+.sidebar-nav-notification {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background: var(--color-danger);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 4px;
+  margin-left: auto;
+  animation: notificationPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes notificationPop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* ============================================================
+   ENHANCEMENT 7: FY COUNTDOWN WIDGET
+   ============================================================ */
+
+.fy-countdown-card {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.fy-countdown-segments {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.fy-countdown-segment {
+  text-align: center;
+  min-width: 52px;
+}
+
+.fy-countdown-number {
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  display: block;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.fy-countdown-unit {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+  display: block;
+}
+
+.fy-countdown-separator {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  color: var(--border-default);
+  line-height: 1;
+  padding-top: 4px;
+}
+
+/* ============================================================
+   ENHANCEMENT 9: CONFETTI ANIMATION
+   ============================================================ */
+
+.confetti-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  top: -20px;
+  opacity: 0;
+  animation: confettiFall linear forwards;
+}
+
+@keyframes confettiFall {
+  0%   { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(100vh) rotate(720deg) scale(0.5); }
+}
+
+/* Staggered action item entrance */
+.action-item-animated {
+  animation: actionSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes actionSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ============================================================
+   ENHANCEMENT 10: MOBILE NAV IMPROVEMENTS
+   ============================================================ */
+
+.bottom-nav-active-indicator {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: var(--accent-primary);
+  transition: opacity var(--transition-fast);
+}
+
+/* ============================================================
+   MISC: ENHANCED WINNER BANNER
+   ============================================================ */
+
+.winner-banner {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.winner-banner::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 60%;
+  height: 200%;
+  background: rgba(255,255,255,0.06);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* ============================================================
+   VIEW TRANSITIONS
+   ============================================================ */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+@keyframes fade-out {
+  to { opacity: 0; transform: translateY(-8px); }
+}
+
+::view-transition-old(root) {
+  animation: 200ms ease-in both fade-out;
+}
+
+::view-transition-new(root) {
+  animation: 250ms ease-out both fade-in;
+}
+
+/* Regime comparison enhanced layout */
+.regime-vs-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+}
+
+.regime-vs-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-surface-raised);
+  border: 2px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: 800;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .regime-comparison-with-vs {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+  }
+
+  .regime-comparison-with-vs > .card {
+    flex: 1;
+  }
+}
