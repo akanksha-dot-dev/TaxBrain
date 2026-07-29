@@ -36,7 +36,9 @@ export default function ActionChecklist() {
   const [prevCompleted, setPrevCompleted] = useState(0);
 
   useEffect(() => {
-    setProfile(loadProfile());
+    const p = loadProfile();
+    const active = (p && p.jobs.length > 0) ? p : SAMPLE_PROFILES[0].profile;
+    setProfile(active);
     setCompletedState(loadActionState());
   }, []);
 

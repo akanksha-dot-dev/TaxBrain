@@ -34,7 +34,8 @@ export default function Calculator() {
   const [activeSlabTab, setActiveSlabTab] = useState<'new' | 'old'>('new');
 
   useEffect(() => {
-    setProfile(loadProfile());
+    const p = loadProfile();
+    setProfile((p && p.jobs.length > 0) ? p : SAMPLE_PROFILES[0].profile);
   }, []);
 
   const comparison = useMemo(() => {
