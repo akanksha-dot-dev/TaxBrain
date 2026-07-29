@@ -367,7 +367,7 @@ export default function Calculator() {
                 Old Regime
               </button>
             </div>
-            <SlabTable breakdown={comparison[activeSlabTab === 'new' ? 'newRegime' : 'oldRegime'].slabBreakdown} />
+            <SlabBars breakdown={comparison[activeSlabTab === 'new' ? 'newRegime' : 'oldRegime'].slabBreakdown} />
           </div>
 
           {/* Computation Steps */}
@@ -489,6 +489,9 @@ function ResultCard({ result, isWinner }: {
   result: TaxResult;
   isWinner: boolean;
 }) {
+  const takeHomePct = result.grossSalary > 0
+    ? Math.round(((result.annualTakeHome) / result.grossSalary) * 100)
+    : 0;
   return (
     <div className={`card ${isWinner ? 'card-success' : ''}`} style={{ flex: 1 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-3)' }}>
@@ -498,38 +501,92 @@ function ResultCard({ result, isWinner }: {
       <div className={`tax-amount ${isWinner ? 'tax-amount-savings' : 'tax-amount-positive'}`}>
         {formatCurrency(result.totalTax)}
       </div>
-      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
+      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginTop: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
         Effective rate: {formatPercent(result.effectiveTaxRate)} • Take-home: {formatCurrency(result.monthlyTakeHome)}/mo
+      </div>
+      {/* Take-home progress bar */}
+      <div style={{ marginTop: 'var(--space-2)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '4px' }}>
+          <span>Take-home ratio</span>
+          <span style={{ fontWeight: 600, color: isWinner ? 'var(--color-success)' : 'var(--text-primary)' }}>{takeHomePct}%</span>
+        </div>
+        <div style={{ height: '6px', background: 'var(--bg-surface-raised)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', width: `${takeHomePct}%`,
+            background: isWinner ? 'linear-gradient(90deg, var(--green-600), var(--green-400))' : 'var(--gray-600)',
+            borderRadius: 'var(--radius-full)',
+            transition: 'width var(--transition-base)',
+          }} />
+        </div>
       </div>
     </div>
   );
 }
 
-function SlabTable({ breakdown }: { breakdown: readonly SlabBreakdown[] }) {
+function SlabBars({ breakdown }: { breakdown: readonly SlabBreakdown[] }) {
+  const maxTax = Math.max(...breakdown.map(r => r.taxOnSlab), 1);
+  const maxTaxable = Math.max(...breakdown.map(r => r.taxableInSlab), 1);
+  // Find the highest slab with taxable income
+  const activeSlabIndex = breakdown.reduce((last, row, i) => row.taxableInSlab > 0 ? i : last, -1);
+
+  function getSlabColor(rate: number): string {
+    if (rate === 0)   return 'linear-gradient(90deg, #52525B, #71717A)';
+    if (rate <= 0.05) return 'linear-gradient(90deg, #CA8A04, #EAB308)';
+    if (rate <= 0.10) return 'linear-gradient(90deg, #D97706, #F59E0B)';
+    if (rate <= 0.15) return 'linear-gradient(90deg, #EA580C, #F97316)';
+    if (rate <= 0.20) return 'linear-gradient(90deg, #DC2626, #EF4444)';
+    return 'linear-gradient(90deg, #9F1239, #E11D48)';
+  }
+
   return (
-    <table className="slab-table">
-      <thead>
-        <tr>
-          <th>Income Slab</th>
-          <th className="amount">Taxable Amount</th>
-          <th className="amount">Tax</th>
-        </tr>
-      </thead>
-      <tbody>
-        {breakdown.map((row, i) => (
-          <tr key={i} style={{ opacity: row.taxableInSlab === 0 ? 0.4 : 1 }}>
-            <td>
-              {row.slab.label}
-              <span style={{ color: 'var(--text-muted)', marginLeft: 'var(--space-2)', fontSize: 'var(--text-xs)' }}>
-                @ {(row.slab.rate * 100).toFixed(0)}%
+    <div className="slab-bars-container">
+      {activeSlabIndex >= 0 && (
+        <div className="slab-you-are-here">
+          <span>📍</span>
+          <span>You're in the <strong>{(breakdown[activeSlabIndex].slab.rate * 100).toFixed(0)}% slab</strong> — {breakdown[activeSlabIndex].slab.label}</span>
+        </div>
+      )}
+      {breakdown.map((row, i) => {
+        const isActive = i === activeSlabIndex;
+        const barWidthPct = maxTaxable > 0 ? Math.max(2, (row.taxableInSlab / maxTaxable) * 100) : 2;
+        const isEmpty = row.taxableInSlab === 0;
+        const rate = row.slab.rate;
+        return (
+          <div key={i} className={`slab-bar-row ${isEmpty ? 'slab-bar-zero' : ''}`}>
+            <div className="slab-bar-header">
+              <span className="slab-bar-label">
+                {row.slab.label}
+                {isActive && <span style={{ marginLeft: '6px', color: 'var(--accent-primary)', fontWeight: 700 }}>← you</span>}
               </span>
-            </td>
-            <td className="amount">{formatCurrency(row.taxableInSlab)}</td>
-            <td className="amount">{formatCurrency(row.taxOnSlab)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+              <div className="slab-bar-values">
+                <span style={{ color: 'var(--text-muted)' }}>{formatCurrency(row.taxableInSlab)}</span>
+                {row.taxOnSlab > 0 && (
+                  <span className="slab-bar-tax" style={{ color: rate >= 0.20 ? 'var(--color-danger)' : rate >= 0.10 ? 'var(--color-warning)' : 'var(--text-primary)' }}>
+                    = {formatCurrency(row.taxOnSlab)}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="slab-bar-track">
+              <div
+                className="slab-bar-fill"
+                style={{
+                  width: isEmpty ? '0%' : `${barWidthPct}%`,
+                  background: getSlabColor(rate),
+                  boxShadow: isActive ? `0 0 8px rgba(102,126,234,0.4)` : 'none',
+                  outline: isActive ? '2px solid rgba(102,126,234,0.5)' : 'none',
+                  outlineOffset: '1px',
+                }}
+              >
+                {!isEmpty && barWidthPct > 15 && (
+                  <span className="slab-bar-rate-label">{(rate * 100).toFixed(0)}%</span>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
